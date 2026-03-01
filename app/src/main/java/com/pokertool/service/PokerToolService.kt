@@ -292,7 +292,7 @@ class PokerToolService : Service() {
         try {
             windowManager.addView(floatingButton, params)
         } catch (e: Exception) {
-            showError("Overlay failed: ${e.message}")
+            showError("Помилка оверлею: ${e.message}")
             stopSelf()
         }
     }
@@ -319,7 +319,7 @@ class PokerToolService : Service() {
                     analyzeScreenshot(bitmap)
                 } else {
                     resetButtonState()
-                    showError("Screenshot failed — try restarting the service")
+                    showError("Скріншот не вдався — перезапустіть сервіс")
                 }
             }
         }, 300)
@@ -361,35 +361,55 @@ class PokerToolService : Service() {
         resultOverlay = inflater.inflate(R.layout.result_overlay, null)
 
         val actionText = resultOverlay?.findViewById<TextView>(R.id.actionText)
-        val confidenceText = resultOverlay?.findViewById<TextView>(R.id.confidenceText)
+        val equityText = resultOverlay?.findViewById<TextView>(R.id.equityText)
         val cardsText = resultOverlay?.findViewById<TextView>(R.id.cardsText)
-        val stageText = resultOverlay?.findViewById<TextView>(R.id.stageText)
-        val handNameText = resultOverlay?.findViewById<TextView>(R.id.handNameText)
+        val probsText = resultOverlay?.findViewById<TextView>(R.id.probsText)
+        val infoText = resultOverlay?.findViewById<TextView>(R.id.infoText)
         val reasoningText = resultOverlay?.findViewById<TextView>(R.id.reasoningText)
-        val extraInfoText = resultOverlay?.findViewById<TextView>(R.id.extraInfoText)
         val btnClose = resultOverlay?.findViewById<TextView>(R.id.btnClose)
 
-        val displayAction = if (result.actionAmount.isNotBlank() && result.action == "RAISE") {
-            "RAISE ${result.actionAmount}"
-        } else {
-            result.action
+        val actionUk = when (result.action.uppercase()) {
+            "FOLD" -> "ФОЛД"
+            "CALL" -> "КОЛЛ"
+            "RAISE" -> "РЕЙЗ"
+            "CHECK" -> "ЧЕК"
+            else -> result.action
         }
-        actionText?.text = displayAction
+        actionText?.text = actionUk
         actionText?.setTextColor(getActionColor(result.action))
 
-        confidenceText?.text = result.confidence
-        confidenceText?.setTextColor(getConfidenceColor(result.confidence))
+        equityText?.text = "%.0f%%".format(result.equity)
 
         val holeDisplay = formatCards(result.holeCards)
-        val communityDisplay = if (result.communityCards.isNotBlank()) {
-            " | Board: ${formatCards(result.communityCards)}"
+        val boardPart = if (result.communityCards.isNotBlank()) {
+            " | ${formatCards(result.communityCards)}"
         } else ""
-        cardsText?.text = "$holeDisplay$communityDisplay"
+        cardsText?.text = "$holeDisplay$boardPart \u2192 ${result.currentHand}"
 
-        stageText?.text = result.stage.uppercase()
-        handNameText?.text = result.handName
+        val probs = result.handProbabilities
+        if (probs.isNotEmpty()) {
+            val sb = StringBuilder()
+            val entries = probs.entries.sortedByDescending { it.value }
+            for ((name, pct) in entries) {
+                if (pct > 0.05) {
+                    sb.append("%s %.1f%%  ".format(name, pct))
+                }
+            }
+            if (sb.isBlank()) sb.append(result.currentHand)
+            probsText?.text = sb.toString().trim()
+        } else {
+            probsText?.text = result.currentHand
+        }
+
+        val infoParts = mutableListOf<String>()
+        if (result.outs > 0) infoParts.add("Аутів: ${result.outs}")
+        if (result.potOdds.isNotBlank()) infoParts.add("Пот-одси: ${result.potOdds}")
+        infoParts.add("Банк: ${result.pot}")
+        infoParts.add("Стек: ${result.myStack}")
+        infoParts.add(result.myPosition)
+        infoText?.text = infoParts.joinToString(" | ")
+
         reasoningText?.text = result.reasoning
-        extraInfoText?.text = "Pot: ${result.pot} | Stack: ${result.myStack} | Pos: ${result.myPosition} | Players: ${result.numPlayers}"
 
         btnClose?.setOnClickListener { dismissResult() }
 
@@ -425,15 +445,6 @@ class PokerToolService : Service() {
             "CALL" -> getColor(R.color.call_yellow)
             "RAISE" -> getColor(R.color.raise_green)
             "CHECK" -> getColor(R.color.check_blue)
-            else -> getColor(R.color.white)
-        }
-    }
-
-    private fun getConfidenceColor(confidence: String): Int {
-        return when (confidence.uppercase()) {
-            "HIGH" -> getColor(R.color.confidence_high)
-            "MEDIUM" -> getColor(R.color.confidence_medium)
-            "LOW" -> getColor(R.color.confidence_low)
             else -> getColor(R.color.white)
         }
     }

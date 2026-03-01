@@ -9,11 +9,13 @@ data class AnalysisResult(
     val myStack: String,
     val myPosition: String,
     val numPlayers: Int,
-    val handStrength: Int,
-    val handName: String,
+    val currentHand: String,
+    val equity: Double,
+    val handProbabilities: Map<String, Double>,
+    val outs: Int,
+    val potOdds: String,
     val action: String,
-    val actionAmount: String,
-    val confidence: String,
     val reasoning: String,
-    val rawResponse: String
+    val rawResponse: String,
+    val isError: Boolean = false
 )

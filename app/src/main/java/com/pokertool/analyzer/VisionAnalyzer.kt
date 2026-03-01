@@ -2,10 +2,11 @@ package com.pokertool.analyzer
 
 import android.graphics.Bitmap
 import android.util.Base64
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.pokertool.math.Card
+import com.pokertool.math.EquityCalculator
 import com.pokertool.model.AnalysisResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,27 +31,31 @@ class VisionAnalyzer(
         return withContext(Dispatchers.IO) {
             try {
                 val base64 = bitmapToBase64(bitmap)
-                val prompt = buildPrompt(playStyle)
-                val responseText = callApi(base64, prompt)
-                parseResponse(responseText)
-            } catch (e: Exception) {
-                AnalysisResult(
-                    holeCards = "?",
-                    communityCards = "",
-                    stage = "unknown",
-                    pot = "?",
-                    blinds = "?",
-                    myStack = "?",
-                    myPosition = "?",
-                    numPlayers = 0,
-                    handStrength = 0,
-                    handName = "Error",
-                    action = "ERROR",
-                    actionAmount = "",
-                    confidence = "LOW",
-                    reasoning = e.message ?: "Unknown error",
-                    rawResponse = e.stackTraceToString()
+                val responseText = callApi(base64, playStyle)
+                val extraction = parseExtraction(responseText)
+
+                if (extraction.isError) return@withContext extraction
+
+                val holeCards = Card.parseMultiple(extraction.holeCards)
+                val boardCards = Card.parseMultiple(extraction.communityCards)
+                val potVal = extraction.pot.replace(",", "").replace(" ", "").toDoubleOrNull() ?: 0.0
+
+                val math = EquityCalculator.calculate(
+                    holeCards = holeCards,
+                    communityCards = boardCards,
+                    numOpponents = (extraction.numPlayers - 1).coerceAtLeast(1),
+                    pot = potVal
                 )
+
+                extraction.copy(
+                    currentHand = math.currentHand,
+                    equity = math.equity,
+                    handProbabilities = math.handProbabilities,
+                    outs = math.outs,
+                    potOdds = math.potOdds
+                )
+            } catch (e: Exception) {
+                errorResult("Помилка: ${e.message}")
             }
         }
     }
@@ -58,46 +63,22 @@ class VisionAnalyzer(
     private fun bitmapToBase64(bitmap: Bitmap): String {
         val stream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
-        val bytes = stream.toByteArray()
-        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+        return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
     }
 
-    private fun buildPrompt(playStyle: String): String {
-        return """You are an expert poker analyst AI. Analyze this ClubGG poker table screenshot.
-The interface may be in Ukrainian, Russian, English or other languages.
-"Загальний банк" = Total pot. "Блайнди" = Blinds. "Наступні блайнди" = Next blinds.
+    private fun callApi(base64Image: String, playStyle: String): String {
+        val prompt = """Extract poker game data from this ClubGG screenshot. Interface may be in any language (Ukrainian/Russian/English).
+"Загальний банк"=pot. "Блайнди"=blinds. Cards at bottom of screen are MY hole cards.
 
-EXTRACT from the screenshot:
-1. My hole cards (face-up cards at the BOTTOM of screen - the hero/player position)
-2. Community cards (center of table, if any are showing)
-3. Game stage: preflop (no community cards), flop (3), turn (4), river (5)
-4. Total pot size
-5. Blind levels (small blind/big blind and ante if shown)
-6. My chip stack (bottom player's number)
-7. My position relative to the Dealer button (D)
-8. Number of players at the table
-9. Any bet amounts visible next to players
+Return ONLY valid JSON, no markdown:
+{"hole_cards":"8s Kh","community_cards":"Ks 5h Th 8c Jd","pot":"2058","blinds":"25/50","ante":"8","my_stack":"942","position":"BTN","num_players":3,"stage":"river","action":"RAISE","reasoning":"Two pair is strong here, value bet"}
 
-ANALYZE considering a $playStyle play style:
-- Hand strength on a 1-10 scale
-- Current hand name (pair, two pair, straight draw, etc.)
-- Pot odds if there's a bet to call
-- Position advantage
-- Stack depth relative to blinds (M-ratio)
-- Tournament pressure if applicable
+Card format: A,K,Q,J,T,9,8,7,6,5,4,3,2 for ranks. s,h,d,c for suits. Separate cards with spaces.
+stage: preflop/flop/turn/river
+position: BTN/SB/BB/UTG/MP/CO/HJ
+action: FOLD/CHECK/CALL/RAISE (based on $playStyle style)
+If no hole cards visible: {"error":"no_hand"}"""
 
-RECOMMEND:
-- Primary action: FOLD, CHECK, CALL, or RAISE
-- If RAISE, suggest sizing
-- Confidence level: LOW, MEDIUM, or HIGH
-
-If you cannot see hole cards or it appears to be between hands, indicate "NO_HAND" as action.
-
-Respond with ONLY valid JSON, no markdown formatting, no code blocks:
-{"hole_cards":"8s Kh","community_cards":"Ks 5h 10h 8c Jd","stage":"river","pot":"2058","blinds":"25/50","ante":"8","my_stack":"942","my_position":"BTN","num_players":3,"hand_strength":7,"hand_name":"Two pair, Kings and Eights","action":"RAISE","action_amount":"2.5x pot","confidence":"HIGH","reasoning":"Strong two pair on the river with good position. Value raise to extract from weaker holdings."}"""
-    }
-
-    private fun callApi(base64Image: String, prompt: String): String {
         val messagesArray = JsonArray().apply {
             add(JsonObject().apply {
                 addProperty("role", "user")
@@ -119,8 +100,8 @@ Respond with ONLY valid JSON, no markdown formatting, no code blocks:
 
         val payload = JsonObject().apply {
             addProperty("model", model)
-            addProperty("max_tokens", 1000)
-            addProperty("temperature", 0.3)
+            addProperty("max_tokens", 500)
+            addProperty("temperature", 0.2)
             add("messages", messagesArray)
         }
 
@@ -132,74 +113,65 @@ Respond with ONLY valid JSON, no markdown formatting, no code blocks:
             .build()
 
         val response = client.newCall(request).execute()
-        val body = response.body?.string() ?: throw Exception("Empty response")
+        val body = response.body?.string() ?: throw Exception("Порожня відповідь")
 
         if (!response.isSuccessful) {
             val errorMsg = try {
                 JsonParser.parseString(body).asJsonObject
-                    .getAsJsonObject("error")
-                    .get("message").asString
-            } catch (_: Exception) {
-                body
-            }
-            throw Exception("API error ${response.code}: $errorMsg")
+                    .getAsJsonObject("error").get("message").asString
+            } catch (_: Exception) { body }
+            throw Exception("API ${response.code}: $errorMsg")
         }
 
         return try {
             JsonParser.parseString(body).asJsonObject
-                .getAsJsonArray("choices")
-                .get(0).asJsonObject
-                .getAsJsonObject("message")
-                .get("content").asString
+                .getAsJsonArray("choices")[0].asJsonObject
+                .getAsJsonObject("message").get("content").asString
         } catch (e: Exception) {
-            throw Exception("Failed to parse API response: ${e.message}")
+            throw Exception("Помилка парсингу: ${e.message}")
         }
     }
 
-    private fun parseResponse(responseText: String): AnalysisResult {
-        val raw = responseText.trim()
-            .removePrefix("```json")
-            .removePrefix("```")
-            .removeSuffix("```")
-            .trim()
+    private fun parseExtraction(raw: String): AnalysisResult {
+        val cleaned = raw.trim()
+            .removePrefix("```json").removePrefix("```")
+            .removeSuffix("```").trim()
 
-        return try {
-            val json = JsonParser.parseString(raw).asJsonObject
-            AnalysisResult(
-                holeCards = json.get("hole_cards")?.asString ?: "?",
-                communityCards = json.get("community_cards")?.asString ?: "",
-                stage = json.get("stage")?.asString ?: "unknown",
-                pot = json.get("pot")?.asString ?: "?",
-                blinds = json.get("blinds")?.asString ?: "?",
-                myStack = json.get("my_stack")?.asString ?: "?",
-                myPosition = json.get("my_position")?.asString ?: "?",
-                numPlayers = json.get("num_players")?.asInt ?: 0,
-                handStrength = json.get("hand_strength")?.asInt ?: 0,
-                handName = json.get("hand_name")?.asString ?: "Unknown",
-                action = json.get("action")?.asString ?: "?",
-                actionAmount = json.get("action_amount")?.asString ?: "",
-                confidence = json.get("confidence")?.asString ?: "LOW",
-                reasoning = json.get("reasoning")?.asString ?: "No analysis available",
-                rawResponse = responseText
-            )
+        val json = try {
+            JsonParser.parseString(cleaned).asJsonObject
         } catch (e: Exception) {
-            AnalysisResult(
-                holeCards = "?",
-                communityCards = "",
-                stage = "unknown",
-                pot = "?",
-                blinds = "?",
-                myStack = "?",
-                myPosition = "?",
-                numPlayers = 0,
-                handStrength = 0,
-                handName = "Parse Error",
-                action = "ERROR",
-                actionAmount = "",
-                confidence = "LOW",
-                reasoning = "Could not parse AI response. Raw: ${raw.take(200)}",
-                rawResponse = responseText
-            )
+            return errorResult("JSON помилка: ${cleaned.take(100)}")
         }
+
+        if (json.has("error")) {
+            return errorResult("Карти не видно")
+        }
+
+        return AnalysisResult(
+            holeCards = json.get("hole_cards")?.asString ?: "?",
+            communityCards = json.get("community_cards")?.asString ?: "",
+            stage = json.get("stage")?.asString ?: "?",
+            pot = json.get("pot")?.asString ?: "0",
+            blinds = json.get("blinds")?.asString ?: "?",
+            myStack = json.get("my_stack")?.asString ?: "?",
+            myPosition = json.get("position")?.asString ?: "?",
+            numPlayers = json.get("num_players")?.asInt ?: 2,
+            currentHand = "",
+            equity = 0.0,
+            handProbabilities = emptyMap(),
+            outs = 0,
+            potOdds = "",
+            action = json.get("action")?.asString ?: "?",
+            reasoning = json.get("reasoning")?.asString ?: "",
+            rawResponse = raw
+        )
     }
+
+    private fun errorResult(msg: String) = AnalysisResult(
+        holeCards = "?", communityCards = "", stage = "?",
+        pot = "0", blinds = "?", myStack = "?", myPosition = "?",
+        numPlayers = 0, currentHand = "Помилка", equity = 0.0,
+        handProbabilities = emptyMap(), outs = 0, potOdds = "",
+        action = "?", reasoning = msg, rawResponse = msg, isError = true
+    )
 }

@@ -1,26 +1,25 @@
 <resources>
     <string name="app_name">PokerTool</string>
-    <string name="start_service">Start</string>
-    <string name="stop_service">Stop</string>
-    <string name="settings">Settings</string>
-    <string name="api_key_label">OpenAI API Key</string>
+    <string name="start_service">СТАРТ</string>
+    <string name="stop_service">СТОП</string>
+    <string name="settings">Налаштування</string>
+    <string name="api_key_label">OpenAI API ключ</string>
     <string name="api_key_hint">sk-...</string>
-    <string name="play_style_label">Play Style</string>
-    <string name="save">Save</string>
-    <string name="status_stopped">Stopped</string>
-    <string name="status_running">Running</string>
-    <string name="notification_channel">PokerTool Service</string>
-    <string name="notification_title">PokerTool Active</string>
-    <string name="notification_text">Tap the floating button to analyze</string>
-    <string name="no_api_key">Set your OpenAI API key in Settings first</string>
-    <string name="overlay_permission_needed">Overlay permission required</string>
-    <string name="analyzing">Analyzing…</string>
-    <string name="error_capture">Screenshot failed</string>
-    <string name="error_api">API error</string>
-    <string name="no_hand">No active hand detected</string>
+    <string name="play_style_label">Стиль гри</string>
+    <string name="save">ЗБЕРЕГТИ</string>
+    <string name="status_stopped">● Зупинено</string>
+    <string name="status_running">● Працює</string>
+    <string name="notification_channel">PokerTool сервіс</string>
+    <string name="notification_title">PokerTool активний</string>
+    <string name="notification_text">Натисніть кнопку ♠ для аналізу</string>
+    <string name="no_api_key">Спочатку введіть OpenAI API ключ</string>
+    <string name="overlay_permission_needed">Потрібен дозвіл на накладення</string>
+    <string name="analyzing">Аналізую…</string>
+    <string name="error_capture">Не вдалось зробити скріншот</string>
+    <string name="no_hand">Карти не видно</string>
     <string-array name="play_styles">
-        <item>Tight</item>
-        <item>Balanced</item>
-        <item>Aggressive</item>
+        <item>Тайт</item>
+        <item>Збалансований</item>
+        <item>Агресивний</item>
     </string-array>
 </resources>

@@ -8,17 +8,17 @@
     android:background="@color/surface">
 
     <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
         android:src="@drawable/ic_spade"
         android:layout_marginBottom="8dp"
-        android:contentDescription="PokerTool icon" />
+        android:contentDescription="icon" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="PokerTool"
-        android:textSize="32sp"
+        android:textSize="30sp"
         android:textColor="@color/white"
         android:textStyle="bold"
         android:layout_marginBottom="4dp" />
@@ -26,19 +26,19 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="AI Poker Assistant for ClubGG"
+        android:text="AI покер-помічник для ClubGG"
         android:textSize="14sp"
         android:textColor="@color/on_surface_dim"
-        android:layout_marginBottom="40dp" />
+        android:layout_marginBottom="36dp" />
 
     <TextView
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="● Stopped"
+        android:text="● Зупинено"
         android:textSize="18sp"
         android:textColor="@color/fold_red"
-        android:layout_marginBottom="32dp" />
+        android:layout_marginBottom="28dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -52,7 +52,7 @@
             android:layout_height="52dp"
             android:layout_weight="1"
             android:background="@drawable/btn_primary_bg"
-            android:text="START"
+            android:text="СТАРТ"
             android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -65,7 +65,7 @@
             android:layout_height="52dp"
             android:layout_weight="1"
             android:background="@drawable/edit_text_bg"
-            android:text="STOP"
+            android:text="СТОП"
             android:textColor="@color/on_surface_dim"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -78,7 +78,7 @@
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:background="@drawable/edit_text_bg"
-        android:text="⚙  Settings"
+        android:text="⚙  Налаштування"
         android:textColor="@color/on_surface_dim"
         android:textSize="16sp"
         android:gravity="center"
@@ -87,8 +87,8 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        android:text="How to use:\n1. Set your OpenAI API key in Settings\n2. Tap START and grant permissions\n3. Open ClubGG\n4. Tap the floating ♠ button to analyze"
+        android:layout_marginTop="36dp"
+        android:text="Як користуватись:\n1. Введіть OpenAI API ключ в Налаштуваннях\n2. Натисніть СТАРТ і дайте дозволи\n3. Відкрийте ClubGG\n4. Натисніть кнопку ♠ для аналізу"
         android:textColor="@color/on_surface_dim"
         android:textSize="13sp"
         android:lineSpacingExtra="4dp" />

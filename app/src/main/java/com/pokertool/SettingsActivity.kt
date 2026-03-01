@@ -40,7 +40,7 @@ class SettingsActivity : AppCompatActivity() {
         btnSave.setOnClickListener {
             val apiKey = apiKeyInput.text.toString().trim()
             if (apiKey.isBlank()) {
-                Toast.makeText(this, "API key cannot be empty", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "API ключ не може бути порожнім", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -48,7 +48,7 @@ class SettingsActivity : AppCompatActivity() {
             prefs.playStyle = playStyleSpinner.selectedItem.toString()
             prefs.model = modelSpinner.selectedItem.toString()
 
-            Toast.makeText(this, "Settings saved", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Збережено", Toast.LENGTH_SHORT).show()
             finish()
         }
     }
