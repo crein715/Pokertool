@@ -39,11 +39,9 @@ data class Card(val rank: Int, val suit: Int) {
 
         fun parseMultiple(s: String): List<Card> {
             if (s.isBlank()) return emptyList()
-            return s.trim().split("\\s+".toRegex(), ",").flatMap { token ->
-                val t = token.trim()
-                if (t.isEmpty()) emptyList()
-                else listOfNotNull(parse(t))
-            }
+            return s.trim().replace(",", " ")
+                .split("\\s+".toRegex())
+                .mapNotNull { t -> if (t.isBlank()) null else parse(t.trim()) }
         }
 
         fun fullDeck(): MutableList<Card> {
