@@ -69,6 +69,9 @@ class PokerToolService : Service() {
     private var screenHeight = 0
     private var screenDensity = 0
 
+    private var pendingCapture = false
+    private var captureCallback: ((Bitmap?) -> Unit)? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -158,6 +161,45 @@ class PokerToolService : Service() {
         imageReader = ImageReader.newInstance(
             screenWidth, screenHeight, PixelFormat.RGBA_8888, 2
         )
+        imageReader?.setOnImageAvailableListener({ reader ->
+            if (pendingCapture) {
+                pendingCapture = false
+                val bitmap = acquireScreenshot(reader)
+                val cb = captureCallback
+                captureCallback = null
+                cb?.let { handler.post { it(bitmap) } }
+            } else {
+                try {
+                    reader.acquireLatestImage()?.close()
+                } catch (_: Exception) {}
+            }
+        }, handler)
+    }
+
+    private fun acquireScreenshot(reader: ImageReader): Bitmap? {
+        return try {
+            val image = reader.acquireLatestImage() ?: return null
+            val planes = image.planes
+            val buffer = planes[0].buffer
+            val pixelStride = planes[0].pixelStride
+            val rowStride = planes[0].rowStride
+            val rowPadding = rowStride - pixelStride * image.width
+
+            val bitmapWidth = image.width + rowPadding / pixelStride
+            val bitmap = Bitmap.createBitmap(bitmapWidth, image.height, Bitmap.Config.ARGB_8888)
+            bitmap.copyPixelsFromBuffer(buffer)
+            image.close()
+
+            if (bitmapWidth != image.width) {
+                val cropped = Bitmap.createBitmap(bitmap, 0, 0, image.width, image.height)
+                bitmap.recycle()
+                cropped
+            } else {
+                bitmap
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun setupVirtualDisplay() {
@@ -247,37 +289,28 @@ class PokerToolService : Service() {
         resultOverlay?.visibility = View.INVISIBLE
 
         handler.postDelayed({
-            val bitmap = captureScreen()
+            captureCallback = { bitmap ->
+                floatingButton?.visibility = View.VISIBLE
 
-            floatingButton?.visibility = View.VISIBLE
-
-            if (bitmap != null) {
-                analyzeScreenshot(bitmap)
-            } else {
-                resetButtonState()
-                Toast.makeText(this, getString(R.string.error_capture), Toast.LENGTH_SHORT).show()
+                if (bitmap != null) {
+                    analyzeScreenshot(bitmap)
+                } else {
+                    resetButtonState()
+                    Toast.makeText(this, getString(R.string.error_capture), Toast.LENGTH_SHORT).show()
+                }
             }
-        }, 200)
-    }
+            pendingCapture = true
 
-    private fun captureScreen(): Bitmap? {
-        return try {
-            val image = imageReader?.acquireLatestImage() ?: return null
-            val planes = image.planes
-            val buffer = planes[0].buffer
-            val pixelStride = planes[0].pixelStride
-            val rowStride = planes[0].rowStride
-            val rowPadding = rowStride - pixelStride * image.width
-
-            val bitmapWidth = image.width + rowPadding / pixelStride
-            val bitmap = Bitmap.createBitmap(bitmapWidth, image.height, Bitmap.Config.ARGB_8888)
-            bitmap.copyPixelsFromBuffer(buffer)
-            image.close()
-
-            Bitmap.createBitmap(bitmap, 0, 0, image.width, image.height)
-        } catch (e: Exception) {
-            null
-        }
+            handler.postDelayed({
+                if (pendingCapture) {
+                    pendingCapture = false
+                    val cb = captureCallback
+                    captureCallback = null
+                    floatingButton?.visibility = View.VISIBLE
+                    cb?.invoke(null)
+                }
+            }, 3000)
+        }, 250)
     }
 
     private fun analyzeScreenshot(bitmap: Bitmap) {
