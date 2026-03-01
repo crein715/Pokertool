@@ -1,6 +1,7 @@
 package com.pokertool.analyzer
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.util.Base64
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -30,6 +31,11 @@ class VisionAnalyzer(
     suspend fun analyze(bitmap: Bitmap, playStyle: String): AnalysisResult {
         return withContext(Dispatchers.IO) {
             try {
+                val blackCheck = isBitmapBlank(bitmap)
+                if (blackCheck != null) {
+                    return@withContext errorResult(blackCheck)
+                }
+
                 val base64 = bitmapToBase64(bitmap)
                 val responseText = callApi(base64, playStyle)
                 val extraction = parseExtraction(responseText)
@@ -38,6 +44,13 @@ class VisionAnalyzer(
 
                 val holeCards = Card.parseMultiple(extraction.holeCards)
                 val boardCards = Card.parseMultiple(extraction.communityCards)
+
+                if (holeCards.size < 2) {
+                    return@withContext errorResult(
+                        "AI не розпізнав карти: ${extraction.holeCards}\nВідповідь: ${extraction.rawResponse.take(200)}"
+                    )
+                }
+
                 val potVal = extraction.pot.replace(",", "").replace(" ", "").toDoubleOrNull() ?: 0.0
 
                 val math = EquityCalculator.calculate(
@@ -60,6 +73,27 @@ class VisionAnalyzer(
         }
     }
 
+    private fun isBitmapBlank(bitmap: Bitmap): String? {
+        val step = 20
+        var darkPixels = 0
+        var total = 0
+        for (x in 0 until bitmap.width step step) {
+            for (y in 0 until bitmap.height step step) {
+                val pixel = bitmap.getPixel(x, y)
+                val brightness = (Color.red(pixel) + Color.green(pixel) + Color.blue(pixel)) / 3
+                if (brightness < 15) darkPixels++
+                total++
+            }
+        }
+        val darkRatio = darkPixels.toDouble() / total
+        if (darkRatio > 0.95) {
+            return "Скріншот чорний (${(darkRatio * 100).toInt()}% темних пікселів). " +
+                    "Можливо ClubGG блокує захоплення екрану. " +
+                    "Спробуйте вимкнути захист екрану в налаштуваннях ClubGG."
+        }
+        return null
+    }
+
     private fun bitmapToBase64(bitmap: Bitmap): String {
         val stream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
@@ -67,17 +101,27 @@ class VisionAnalyzer(
     }
 
     private fun callApi(base64Image: String, playStyle: String): String {
-        val prompt = """Extract poker game data from this ClubGG screenshot. Interface may be in any language (Ukrainian/Russian/English).
-"Загальний банк"=pot. "Блайнди"=blinds. Cards at bottom of screen are MY hole cards.
+        val prompt = """Analyze this ClubGG poker table screenshot. The interface may be in Ukrainian, Russian, or English.
+Key terms: "Загальний банк"=total pot, "Блайнди"=blinds, "Наступні блайнди"=next blinds.
 
-Return ONLY valid JSON, no markdown:
-{"hole_cards":"8s Kh","community_cards":"Ks 5h Th 8c Jd","pot":"2058","blinds":"25/50","ante":"8","my_stack":"942","position":"BTN","num_players":3,"stage":"river","action":"RAISE","reasoning":"Two pair is strong here, value bet"}
+Look carefully at the BOTTOM of the screen for the hero's face-up hole cards.
+Look at the CENTER of the table for community cards (if any).
+Look for chip amounts next to player names.
 
-Card format: A,K,Q,J,T,9,8,7,6,5,4,3,2 for ranks. s,h,d,c for suits. Separate cards with spaces.
-stage: preflop/flop/turn/river
-position: BTN/SB/BB/UTG/MP/CO/HJ
-action: FOLD/CHECK/CALL/RAISE (based on $playStyle style)
-If no hole cards visible: {"error":"no_hand"}"""
+You MUST return ONLY valid JSON with no extra text or markdown:
+{"hole_cards":"8s Kh","community_cards":"Ks 5h Th 8c Jd","pot":"2058","blinds":"25/50","ante":"8","my_stack":"942","position":"BTN","num_players":3,"stage":"river","action":"RAISE","reasoning":"Strong two pair, value raise for value"}
+
+Rules:
+- Card notation: A=ace, K=king, Q=queen, J=jack, T=ten, 9-2=number. Suits: s=spades, h=hearts, d=diamonds, c=clubs
+- Separate each card with a space: "Ah Kd" not "AhKd"
+- community_cards="" if preflop (no board cards showing)
+- stage: preflop (0 board cards), flop (3), turn (4), river (5)
+- position relative to D (dealer) button: BTN/SB/BB/UTG/MP/CO/HJ
+- action: FOLD/CHECK/CALL/RAISE based on $playStyle play style
+- reasoning: brief explanation in English
+
+If the screenshot shows a poker table but hero cards are face-down or not visible, still try to extract pot/blinds/stacks and set hole_cards to "?? ??" with action "WAIT".
+Only return {"error":"no_hand"} if this is clearly NOT a poker table at all."""
 
         val messagesArray = JsonArray().apply {
             add(JsonObject().apply {
@@ -113,13 +157,13 @@ If no hole cards visible: {"error":"no_hand"}"""
             .build()
 
         val response = client.newCall(request).execute()
-        val body = response.body?.string() ?: throw Exception("Порожня відповідь")
+        val body = response.body?.string() ?: throw Exception("Порожня відповідь від API")
 
         if (!response.isSuccessful) {
             val errorMsg = try {
                 JsonParser.parseString(body).asJsonObject
                     .getAsJsonObject("error").get("message").asString
-            } catch (_: Exception) { body }
+            } catch (_: Exception) { body.take(300) }
             throw Exception("API ${response.code}: $errorMsg")
         }
 
@@ -128,7 +172,7 @@ If no hole cards visible: {"error":"no_hand"}"""
                 .getAsJsonArray("choices")[0].asJsonObject
                 .getAsJsonObject("message").get("content").asString
         } catch (e: Exception) {
-            throw Exception("Помилка парсингу: ${e.message}")
+            throw Exception("Не вдалось прочитати відповідь: ${body.take(200)}")
         }
     }
 
@@ -140,15 +184,18 @@ If no hole cards visible: {"error":"no_hand"}"""
         val json = try {
             JsonParser.parseString(cleaned).asJsonObject
         } catch (e: Exception) {
-            return errorResult("JSON помилка: ${cleaned.take(100)}")
+            return errorResult("JSON помилка: ${cleaned.take(200)}")
         }
 
         if (json.has("error")) {
-            return errorResult("Карти не видно")
+            val errDetail = json.get("error")?.asString ?: "unknown"
+            return errorResult("AI відповів: $errDetail\nРодповідь: ${cleaned.take(200)}")
         }
 
+        val holeCards = json.get("hole_cards")?.asString ?: "?? ??"
+
         return AnalysisResult(
-            holeCards = json.get("hole_cards")?.asString ?: "?",
+            holeCards = holeCards,
             communityCards = json.get("community_cards")?.asString ?: "",
             stage = json.get("stage")?.asString ?: "?",
             pot = json.get("pot")?.asString ?: "0",

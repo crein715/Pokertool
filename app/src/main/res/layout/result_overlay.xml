@@ -86,6 +86,6 @@
         android:text=""
         android:textSize="12sp"
         android:textColor="@color/on_surface_dim"
-        android:maxLines="3" />
+        android:maxLines="6" />
 
 </LinearLayout>
