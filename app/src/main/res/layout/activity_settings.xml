@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="32dp"
+    android:background="@color/surface">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Settings"
+        android:textSize="28sp"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="OpenAI API Key"
+        android:textSize="14sp"
+        android:textColor="@color/on_surface_dim"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/apiKeyInput"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/edit_text_bg"
+        android:hint="sk-..."
+        android:textColorHint="#55FFFFFF"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:paddingHorizontal="16dp"
+        android:inputType="textPassword"
+        android:singleLine="true"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Play Style"
+        android:textSize="14sp"
+        android:textColor="@color/on_surface_dim"
+        android:layout_marginBottom="8dp" />
+
+    <Spinner
+        android:id="@+id/playStyleSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/edit_text_bg"
+        android:paddingHorizontal="12dp"
+        android:layout_marginBottom="24dp"
+        android:entries="@array/play_styles" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="AI Model"
+        android:textSize="14sp"
+        android:textColor="@color/on_surface_dim"
+        android:layout_marginBottom="8dp" />
+
+    <Spinner
+        android:id="@+id/modelSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/edit_text_bg"
+        android:paddingHorizontal="12dp"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@drawable/btn_primary_bg"
+        android:text="SAVE"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:gravity="center" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Get your API key at:\nplatform.openai.com/api-keys\n\nCost: ~$0.01-0.03 per analysis"
+        android:textColor="#77FFFFFF"
+        android:textSize="12sp"
+        android:lineSpacingExtra="4dp" />
+
+</LinearLayout>
