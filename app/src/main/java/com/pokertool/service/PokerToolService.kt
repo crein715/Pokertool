@@ -13,12 +13,12 @@ import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
-import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
 import android.util.DisplayMetrics
@@ -56,7 +56,13 @@ class PokerToolService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
+    private var captureThread: HandlerThread? = null
+    private var captureHandler: Handler? = null
+
     private var mediaProjection: MediaProjection? = null
+    private var virtualDisplay: VirtualDisplay? = null
+    private var imageReader: ImageReader? = null
+
     private var floatingButton: View? = null
     private var resultOverlay: View? = null
     private var isAnalyzing = false
@@ -64,6 +70,15 @@ class PokerToolService : Service() {
     private var screenWidth = 0
     private var screenHeight = 0
     private var screenDensity = 0
+
+    private val drainRunnable = object : Runnable {
+        override fun run() {
+            try {
+                imageReader?.acquireLatestImage()?.close()
+            } catch (_: Exception) {}
+            captureHandler?.postDelayed(this, 300)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -80,6 +95,9 @@ class PokerToolService : Service() {
         screenDensity = metrics.densityDpi
 
         createNotificationChannel()
+
+        captureThread = HandlerThread("PokerCapture").apply { start() }
+        captureHandler = Handler(captureThread!!.looper)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -93,13 +111,14 @@ class PokerToolService : Service() {
         }
 
         if (resultCode != Activity.RESULT_OK || data == null) {
-            showError("MediaProjection permission denied")
+            showError("Дозвіл на захоплення екрану не надано")
             stopSelf()
             return START_NOT_STICKY
         }
 
         startForegroundWithNotification()
         setupMediaProjection(resultCode, data)
+        setupPersistentCapture()
         showFloatingButton()
 
         return START_NOT_STICKY
@@ -114,8 +133,7 @@ class PokerToolService : Service() {
             description = "PokerTool overlay service"
             setShowBadge(false)
         }
-        val nm = getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(channel)
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
     private fun startForegroundWithNotification() {
@@ -156,83 +174,63 @@ class PokerToolService : Service() {
         }, handler)
     }
 
-    private fun captureScreen(callback: (Bitmap?) -> Unit) {
-        val projection = mediaProjection
-        if (projection == null) {
-            callback(null)
-            return
-        }
-
-        var captureReader: ImageReader? = null
-        var captureDisplay: VirtualDisplay? = null
-        var captured = false
-
-        captureReader = ImageReader.newInstance(
-            screenWidth, screenHeight, PixelFormat.RGBA_8888, 2
+    private fun setupPersistentCapture() {
+        imageReader = ImageReader.newInstance(
+            screenWidth, screenHeight, PixelFormat.RGBA_8888, 4
         )
 
-        captureReader.setOnImageAvailableListener({ reader ->
-            if (captured) return@setOnImageAvailableListener
-            captured = true
+        virtualDisplay = mediaProjection?.createVirtualDisplay(
+            "PokerToolCapture",
+            screenWidth, screenHeight, screenDensity,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+            imageReader?.surface, null, captureHandler
+        )
 
-            val bitmap = try {
-                val image: Image = reader.acquireLatestImage()
-                    ?: return@setOnImageAvailableListener run {
-                        handler.post { callback(null) }
-                        captureDisplay?.release()
-                        reader.close()
-                    }
+        captureHandler?.postDelayed(drainRunnable, 500)
+    }
 
-                val width = image.width
-                val height = image.height
-                val planes = image.planes
-                val buffer = planes[0].buffer
-                val pixelStride = planes[0].pixelStride
-                val rowStride = planes[0].rowStride
-                val rowPadding = rowStride - pixelStride * width
+    private fun captureScreen(callback: (Bitmap?) -> Unit) {
+        captureHandler?.removeCallbacks(drainRunnable)
 
-                val bitmapWidth = width + rowPadding / pixelStride
-                val bmp = Bitmap.createBitmap(bitmapWidth, height, Bitmap.Config.ARGB_8888)
-                bmp.copyPixelsFromBuffer(buffer)
-                image.close()
-
-                if (rowPadding > 0) {
-                    val cropped = Bitmap.createBitmap(bmp, 0, 0, width, height)
-                    bmp.recycle()
-                    cropped
-                } else {
-                    bmp
-                }
-            } catch (e: Exception) {
-                null
+        captureHandler?.postDelayed({
+            var bitmap: Bitmap? = null
+            for (attempt in 0 until 8) {
+                bitmap = acquireScreenshot()
+                if (bitmap != null) break
+                try { Thread.sleep(150) } catch (_: Exception) {}
             }
 
-            captureDisplay?.release()
-            reader.close()
+            captureHandler?.postDelayed(drainRunnable, 500)
             handler.post { callback(bitmap) }
-        }, handler)
+        }, 100)
+    }
 
-        try {
-            captureDisplay = projection.createVirtualDisplay(
-                "PokerToolCapture",
-                screenWidth, screenHeight, screenDensity,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                captureReader.surface, null, handler
-            )
-        } catch (e: Exception) {
-            captureReader.close()
-            callback(null)
-            return
-        }
+    private fun acquireScreenshot(): Bitmap? {
+        return try {
+            val image = imageReader?.acquireLatestImage() ?: return null
+            val width = image.width
+            val height = image.height
+            val planes = image.planes
+            val buffer = planes[0].buffer
+            val pixelStride = planes[0].pixelStride
+            val rowStride = planes[0].rowStride
+            val rowPadding = rowStride - pixelStride * width
 
-        handler.postDelayed({
-            if (!captured) {
-                captured = true
-                captureDisplay?.release()
-                captureReader?.close()
-                callback(null)
+            val bitmapWidth = width + rowPadding / pixelStride
+            val bmp = Bitmap.createBitmap(bitmapWidth, height, Bitmap.Config.ARGB_8888)
+            bmp.copyPixelsFromBuffer(buffer)
+            image.close()
+
+            if (rowPadding > 0) {
+                val cropped = Bitmap.createBitmap(bmp, 0, 0, width, height)
+                bmp.recycle()
+                cropped
+            } else {
+                bmp
             }
-        }, 5000)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -280,9 +278,7 @@ class PokerToolService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (!moved) {
-                        onFloatingButtonClick()
-                    }
+                    if (!moved) onFloatingButtonClick()
                     true
                 }
                 else -> false
@@ -308,7 +304,6 @@ class PokerToolService : Service() {
         floatingButton?.setBackgroundResource(R.drawable.floating_button_loading_bg)
 
         dismissResult()
-
         floatingButton?.visibility = View.INVISIBLE
 
         handler.postDelayed({
@@ -319,7 +314,7 @@ class PokerToolService : Service() {
                     analyzeScreenshot(bitmap)
                 } else {
                     resetButtonState()
-                    showError("Скріншот не вдався — перезапустіть сервіс")
+                    showError("Скріншот не вдався — спробуйте ще раз")
                 }
             }
         }, 300)
@@ -335,11 +330,19 @@ class PokerToolService : Service() {
         val analyzer = VisionAnalyzer(prefs.apiKey, prefs.model)
 
         serviceScope.launch {
-            val result = analyzer.analyze(bitmap, prefs.playStyle)
-            bitmap.recycle()
-            handler.post {
-                resetButtonState()
-                showResult(result)
+            try {
+                val result = analyzer.analyze(bitmap, prefs.playStyle)
+                bitmap.recycle()
+                handler.post {
+                    resetButtonState()
+                    showResult(result)
+                }
+            } catch (e: Exception) {
+                bitmap.recycle()
+                handler.post {
+                    resetButtonState()
+                    showError("Помилка аналізу: ${e.message}")
+                }
             }
         }
     }
@@ -373,6 +376,7 @@ class PokerToolService : Service() {
             "CALL" -> "КОЛЛ"
             "RAISE" -> "РЕЙЗ"
             "CHECK" -> "ЧЕК"
+            "WAIT" -> "ЧЕКАЙ"
             else -> result.action
         }
         actionText?.text = actionUk
@@ -455,21 +459,26 @@ class PokerToolService : Service() {
 
     private fun dismissResult() {
         resultOverlay?.let {
-            try {
-                windowManager.removeView(it)
-            } catch (_: Exception) {}
+            try { windowManager.removeView(it) } catch (_: Exception) {}
         }
         resultOverlay = null
     }
 
     private fun cleanup() {
+        captureHandler?.removeCallbacks(drainRunnable)
         dismissResult()
         floatingButton?.let {
             try { windowManager.removeView(it) } catch (_: Exception) {}
         }
         floatingButton = null
+        virtualDisplay?.release()
+        virtualDisplay = null
+        imageReader?.close()
+        imageReader = null
         mediaProjection?.stop()
         mediaProjection = null
+        captureThread?.quitSafely()
+        captureThread = null
     }
 
     override fun onDestroy() {

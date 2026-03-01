@@ -26,26 +26,26 @@ object EquityCalculator {
         }
 
         val allKnown = holeCards + communityCards
-        val currentBest = HandEvaluator.evaluateBest(allKnown)
         val remainingToDeal = 5 - communityCards.size
         val deck = Card.fullDeck().apply { removeAll(allKnown.toSet()) }
+        val opps = numOpponents.coerceAtLeast(1)
 
-        val neededCards = remainingToDeal + numOpponents.coerceAtLeast(1) * 2
+        val neededCards = remainingToDeal + opps * 2
         if (deck.size < neededCards) {
-            return emptyResult(currentBest.type.nameUk)
+            return emptyResult("Недостатньо карт")
         }
 
         val potOddsStr = if (betToCall > 0 && pot > 0) {
-            val ratio = pot / betToCall
-            "%.1f:1".format(ratio)
+            "%.1f:1".format(pot / betToCall)
         } else ""
 
         if (remainingToDeal == 0) {
-            val equity = riverEquity(holeCards, communityCards, deck, numOpponents)
+            val currentBest = HandEvaluator.evaluateBest(allKnown)
+            val equity = riverEquity(holeCards, communityCards, deck, opps)
             return PokerMathResult(
                 currentHand = currentBest.type.nameUk,
                 equity = equity,
-                handProbabilities = allHandProbs(currentBest.type),
+                handProbabilities = singleHandProbs(currentBest.type),
                 outs = 0,
                 potOdds = potOddsStr
             )
@@ -57,7 +57,6 @@ object EquityCalculator {
         var ties = 0.0
         var total = 0.0
         val handCounts = IntArray(HandType.values().size)
-        val opps = numOpponents.coerceAtLeast(1)
 
         repeat(ITERATIONS) {
             deckArr.shuffle(rng)
@@ -77,7 +76,7 @@ object EquityCalculator {
                     val opp = listOf(deckArr[idx++], deckArr[idx++])
                     val oppHand = HandEvaluator.evaluateBest(opp + fullBoard)
                     if (oppHand > myHand) best = false
-                    else if (oppHand == myHand) tie = true
+                    else if (oppHand.score == myHand.score) tie = true
                 }
             }
 
@@ -90,11 +89,20 @@ object EquityCalculator {
 
         val handProbs = mutableMapOf<String, Double>()
         for (ht in HandType.values()) {
-            val pct = (handCounts[ht.ordinal].toDouble() / ITERATIONS) * 100.0
-            handProbs[ht.nameUk] = pct
+            handProbs[ht.nameUk] = (handCounts[ht.ordinal].toDouble() / ITERATIONS) * 100.0
         }
 
-        val outs = countOuts(holeCards, communityCards, deck, currentBest)
+        val currentBest = if (communityCards.isNotEmpty()) {
+            HandEvaluator.evaluateBest(allKnown)
+        } else {
+            HandEvaluator.evaluateBest(holeCards)
+        }
+
+        val outs = if (communityCards.size in 3..4) {
+            countOuts(holeCards, communityCards, deck, currentBest)
+        } else {
+            0
+        }
 
         return PokerMathResult(
             currentHand = currentBest.type.nameUk,
@@ -114,14 +122,13 @@ object EquityCalculator {
         var wins = 0.0
         var ties = 0.0
         var total = 0.0
-        val numOpps = opps.coerceAtLeast(1)
 
         repeat(ITERATIONS) {
             deck.shuffle(rng)
             var idx = 0
             var best = true
             var tie = false
-            repeat(numOpps) {
+            repeat(opps) {
                 if (idx + 1 < deck.size) {
                     val opp = listOf(deck[idx++], deck[idx++])
                     val oppHand = HandEvaluator.evaluateBest(opp + board)
@@ -143,25 +150,18 @@ object EquityCalculator {
     ): Int {
         var outs = 0
         for (card in deck) {
-            val newHand = HandEvaluator.evaluateBest(hole + board + card)
-            if (newHand > current) outs++
+            val improved = HandEvaluator.evaluateBest(hole + board + card)
+            if (improved > current) outs++
         }
         return outs
     }
 
-    private fun allHandProbs(actual: HandType): Map<String, Double> {
-        val map = mutableMapOf<String, Double>()
-        for (ht in HandType.values()) {
-            map[ht.nameUk] = if (ht == actual) 100.0 else 0.0
-        }
-        return map
+    private fun singleHandProbs(actual: HandType): Map<String, Double> {
+        return HandType.values().associate { it.nameUk to if (it == actual) 100.0 else 0.0 }
     }
 
     private fun emptyResult(hand: String) = PokerMathResult(
-        currentHand = hand,
-        equity = 0.0,
-        handProbabilities = emptyMap(),
-        outs = 0,
-        potOdds = ""
+        currentHand = hand, equity = 0.0,
+        handProbabilities = emptyMap(), outs = 0, potOdds = ""
     )
 }

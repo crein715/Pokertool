@@ -22,13 +22,74 @@ data class HandResult(
 object HandEvaluator {
 
     fun evaluateBest(cards: List<Card>): HandResult {
-        if (cards.size <= 5) return evaluate5(cards)
-        var best: HandResult? = null
-        combinations(cards, 5) { combo ->
-            val result = evaluate5(combo)
-            if (best == null || result > best!!) best = result
+        return when {
+            cards.size < 2 -> HandResult(HandType.HIGH_CARD, cards.firstOrNull()?.rank?.toLong() ?: 0)
+            cards.size < 5 -> evaluatePartial(cards)
+            cards.size == 5 -> evaluate5(cards)
+            else -> {
+                var best: HandResult? = null
+                combinations(cards, 5) { combo ->
+                    val result = evaluate5(combo)
+                    if (best == null || result > best!!) best = result
+                }
+                best ?: HandResult(HandType.HIGH_CARD, 0)
+            }
         }
-        return best ?: HandResult(HandType.HIGH_CARD, 0)
+    }
+
+    private fun evaluatePartial(cards: List<Card>): HandResult {
+        val ranks = cards.map { it.rank }.sortedDescending()
+        val counts = IntArray(15)
+        for (r in ranks) counts[r]++
+
+        var pairRanks = mutableListOf<Int>()
+        var tripsRank = -1
+        var quadsRank = -1
+
+        for (r in 14 downTo 2) {
+            when (counts[r]) {
+                4 -> quadsRank = r
+                3 -> tripsRank = r
+                2 -> pairRanks.add(r)
+            }
+        }
+
+        val type: HandType
+        val kickers: List<Int>
+
+        when {
+            quadsRank >= 0 -> {
+                type = HandType.FOUR_OF_A_KIND
+                kickers = listOf(quadsRank) + ranks.filter { it != quadsRank }.take(1)
+            }
+            tripsRank >= 0 && pairRanks.isNotEmpty() -> {
+                type = HandType.FULL_HOUSE
+                kickers = listOf(tripsRank, pairRanks[0])
+            }
+            tripsRank >= 0 -> {
+                type = HandType.THREE_OF_A_KIND
+                kickers = listOf(tripsRank) + ranks.filter { it != tripsRank }.take(2)
+            }
+            pairRanks.size >= 2 -> {
+                type = HandType.TWO_PAIR
+                kickers = listOf(pairRanks[0], pairRanks[1]) +
+                        ranks.filter { it != pairRanks[0] && it != pairRanks[1] }.take(1)
+            }
+            pairRanks.size == 1 -> {
+                type = HandType.PAIR
+                kickers = listOf(pairRanks[0]) + ranks.filter { it != pairRanks[0] }.take(3)
+            }
+            else -> {
+                type = HandType.HIGH_CARD
+                kickers = ranks.take(5)
+            }
+        }
+
+        var score = type.rank.toLong() * 1_000_000_000_000L
+        for (i in kickers.indices) {
+            score += kickers[i].toLong() * pow15(4 - i)
+        }
+        return HandResult(type, score)
     }
 
     private fun evaluate5(cards: List<Card>): HandResult {

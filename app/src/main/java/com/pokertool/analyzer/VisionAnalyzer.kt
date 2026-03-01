@@ -101,27 +101,31 @@ class VisionAnalyzer(
     }
 
     private fun callApi(base64Image: String, playStyle: String): String {
-        val prompt = """Analyze this ClubGG poker table screenshot. The interface may be in Ukrainian, Russian, or English.
-Key terms: "Загальний банк"=total pot, "Блайнди"=blinds, "Наступні блайнди"=next blinds.
+        val prompt = """Analyze this ClubGG poker table screenshot. Interface may be in Ukrainian, Russian, or English.
+Key terms: "Загальний банк"=total pot, "Блайнди"=blinds.
 
-Look carefully at the BOTTOM of the screen for the hero's face-up hole cards.
-Look at the CENTER of the table for community cards (if any).
-Look for chip amounts next to player names.
+IMPORTANT AREAS TO CHECK:
+- BOTTOM of screen: hero's face-up hole cards (2 cards)
+- CENTER of table: community cards (0 on preflop, 3 on flop, 4 on turn, 5 on river)
+- Numbers near each player: chip stacks
+- Numbers ABOVE player avatars or near table center: bet amounts
+- Look for "All-in" or "Алл-ін" text near players who went all-in
 
-You MUST return ONLY valid JSON with no extra text or markdown:
-{"hole_cards":"8s Kh","community_cards":"Ks 5h Th 8c Jd","pot":"2058","blinds":"25/50","ante":"8","my_stack":"942","position":"BTN","num_players":3,"stage":"river","action":"RAISE","reasoning":"Strong two pair, value raise for value"}
+Return ONLY valid JSON, no markdown:
+{"hole_cards":"8s Kh","community_cards":"Ks 5h Th 8c Jd","pot":"2058","blinds":"25/50","ante":"8","my_stack":"942","position":"BTN","num_players":3,"stage":"river","action":"CALL","reasoning":"Facing all-in with strong two pair, good equity to call"}
 
 Rules:
-- Card notation: A=ace, K=king, Q=queen, J=jack, T=ten, 9-2=number. Suits: s=spades, h=hearts, d=diamonds, c=clubs
-- Separate each card with a space: "Ah Kd" not "AhKd"
-- community_cards="" if preflop (no board cards showing)
-- stage: preflop (0 board cards), flop (3), turn (4), river (5)
-- position relative to D (dealer) button: BTN/SB/BB/UTG/MP/CO/HJ
-- action: FOLD/CHECK/CALL/RAISE based on $playStyle play style
-- reasoning: brief explanation in English
+- Cards: A,K,Q,J,T,9,8,7,6,5,4,3,2 + s/h/d/c. Space between cards: "Ah Kd"
+- community_cards="" if preflop
+- stage: preflop/flop/turn/river
+- position: BTN/SB/BB/UTG/MP/CO/HJ (relative to D button)
+- action: FOLD/CHECK/CALL/RAISE ($playStyle style)
+- If someone went all-in, note it in reasoning and adjust action accordingly
+- For preflop with premium pairs (AA,KK,QQ,JJ,TT,AKs,AKo): usually RAISE or CALL all-in
+- reasoning: brief English explanation
 
-If the screenshot shows a poker table but hero cards are face-down or not visible, still try to extract pot/blinds/stacks and set hole_cards to "?? ??" with action "WAIT".
-Only return {"error":"no_hand"} if this is clearly NOT a poker table at all."""
+If hero cards face-down or between hands: hole_cards="?? ??" action="WAIT".
+Only {"error":"no_hand"} if NOT a poker table."""
 
         val messagesArray = JsonArray().apply {
             add(JsonObject().apply {
