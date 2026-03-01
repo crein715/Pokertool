@@ -13,6 +13,7 @@ import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -22,6 +23,7 @@ import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -49,6 +51,7 @@ class PokerToolService : Service() {
         const val EXTRA_DATA = "data"
         const val CHANNEL_ID = "pokertool_channel"
         const val NOTIFICATION_ID = 1001
+        private const val TAG = "PokerToolService"
     }
 
     private lateinit var windowManager: WindowManager
@@ -71,12 +74,28 @@ class PokerToolService : Service() {
     private var screenHeight = 0
     private var screenDensity = 0
 
-    private val drainRunnable = object : Runnable {
-        override fun run() {
-            try {
-                imageReader?.acquireLatestImage()?.close()
-            } catch (_: Exception) {}
-            captureHandler?.postDelayed(this, 300)
+    @Volatile
+    private var pendingCapture: ((Bitmap?) -> Unit)? = null
+    private var captureGeneration = 0
+
+    private val imageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
+        val image = try {
+            reader.acquireLatestImage()
+        } catch (e: Exception) {
+            Log.w(TAG, "acquireLatestImage exception: ${e.message}")
+            null
+        }
+        if (image == null) return@OnImageAvailableListener
+
+        val cb = pendingCapture
+        if (cb != null) {
+            pendingCapture = null
+            val bitmap = imageToBitmap(image)
+            image.close()
+            Log.d(TAG, "Frame captured: bitmap=${bitmap != null}, ${bitmap?.width}x${bitmap?.height}")
+            handler.post { cb(bitmap) }
+        } else {
+            image.close()
         }
     }
 
@@ -93,6 +112,8 @@ class PokerToolService : Service() {
         screenWidth = metrics.widthPixels
         screenHeight = metrics.heightPixels
         screenDensity = metrics.densityDpi
+
+        Log.d(TAG, "Screen: ${screenWidth}x${screenHeight} @${screenDensity}dpi")
 
         createNotificationChannel()
 
@@ -166,6 +187,7 @@ class PokerToolService : Service() {
         mediaProjection = mpm.getMediaProjection(resultCode, data)
         mediaProjection?.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
+                Log.w(TAG, "MediaProjection stopped by system")
                 handler.post {
                     cleanup()
                     stopSelf()
@@ -178,6 +200,7 @@ class PokerToolService : Service() {
         imageReader = ImageReader.newInstance(
             screenWidth, screenHeight, PixelFormat.RGBA_8888, 4
         )
+        imageReader?.setOnImageAvailableListener(imageAvailableListener, captureHandler)
 
         virtualDisplay = mediaProjection?.createVirtualDisplay(
             "PokerToolCapture",
@@ -186,28 +209,18 @@ class PokerToolService : Service() {
             imageReader?.surface, null, captureHandler
         )
 
-        captureHandler?.postDelayed(drainRunnable, 500)
-    }
-
-    private fun captureScreen(callback: (Bitmap?) -> Unit) {
-        captureHandler?.removeCallbacks(drainRunnable)
-
-        captureHandler?.postDelayed({
-            var bitmap: Bitmap? = null
-            for (attempt in 0 until 8) {
-                bitmap = acquireScreenshot()
-                if (bitmap != null) break
-                try { Thread.sleep(150) } catch (_: Exception) {}
+        if (virtualDisplay == null) {
+            Log.e(TAG, "VirtualDisplay is null — MediaProjection may have been revoked")
+            handler.post {
+                showError("Не вдалось створити VirtualDisplay — перезапустіть додаток")
             }
-
-            captureHandler?.postDelayed(drainRunnable, 500)
-            handler.post { callback(bitmap) }
-        }, 100)
+        } else {
+            Log.d(TAG, "VirtualDisplay created successfully")
+        }
     }
 
-    private fun acquireScreenshot(): Bitmap? {
+    private fun imageToBitmap(image: Image): Bitmap? {
         return try {
-            val image = imageReader?.acquireLatestImage() ?: return null
             val width = image.width
             val height = image.height
             val planes = image.planes
@@ -219,7 +232,6 @@ class PokerToolService : Service() {
             val bitmapWidth = width + rowPadding / pixelStride
             val bmp = Bitmap.createBitmap(bitmapWidth, height, Bitmap.Config.ARGB_8888)
             bmp.copyPixelsFromBuffer(buffer)
-            image.close()
 
             if (rowPadding > 0) {
                 val cropped = Bitmap.createBitmap(bmp, 0, 0, width, height)
@@ -228,9 +240,31 @@ class PokerToolService : Service() {
             } else {
                 bmp
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "imageToBitmap failed: ${e.message}")
             null
         }
+    }
+
+    private fun captureScreen(callback: (Bitmap?) -> Unit) {
+        if (virtualDisplay == null || imageReader == null) {
+            Log.e(TAG, "captureScreen: virtualDisplay=${virtualDisplay != null}, imageReader=${imageReader != null}")
+            callback(null)
+            return
+        }
+
+        val gen = ++captureGeneration
+        pendingCapture = callback
+        Log.d(TAG, "captureScreen: waiting for next frame (gen=$gen)")
+
+        captureHandler?.postDelayed({
+            if (captureGeneration == gen && pendingCapture != null) {
+                Log.w(TAG, "captureScreen: timeout — no frame received in 3s")
+                val cb = pendingCapture
+                pendingCapture = null
+                handler.post { cb?.invoke(null) }
+            }
+        }, 3000)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -314,10 +348,10 @@ class PokerToolService : Service() {
                     analyzeScreenshot(bitmap)
                 } else {
                     resetButtonState()
-                    showError("Скріншот не вдався — спробуйте ще раз")
+                    showError("Скріншот не вдався — спробуйте перезапустити сервіс")
                 }
             }
-        }, 300)
+        }, 350)
     }
 
     private fun analyzeScreenshot(bitmap: Bitmap) {
@@ -437,10 +471,10 @@ class PokerToolService : Service() {
 
     private fun formatCards(cards: String): String {
         return cards
-            .replace("s", "♠").replace("S", "♠")
-            .replace("h", "♥").replace("H", "♥")
-            .replace("d", "♦").replace("D", "♦")
-            .replace("c", "♣").replace("C", "♣")
+            .replace("s", "\u2660").replace("S", "\u2660")
+            .replace("h", "\u2665").replace("H", "\u2665")
+            .replace("d", "\u2666").replace("D", "\u2666")
+            .replace("c", "\u2663").replace("C", "\u2663")
     }
 
     private fun getActionColor(action: String): Int {
@@ -465,7 +499,7 @@ class PokerToolService : Service() {
     }
 
     private fun cleanup() {
-        captureHandler?.removeCallbacks(drainRunnable)
+        pendingCapture = null
         dismissResult()
         floatingButton?.let {
             try { windowManager.removeView(it) } catch (_: Exception) {}
@@ -473,6 +507,7 @@ class PokerToolService : Service() {
         floatingButton = null
         virtualDisplay?.release()
         virtualDisplay = null
+        imageReader?.setOnImageAvailableListener(null, null)
         imageReader?.close()
         imageReader = null
         mediaProjection?.stop()
