@@ -8,7 +8,9 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.pokertool.math.Card
 import com.pokertool.math.EquityCalculator
+import com.pokertool.math.PokerAdvisor
 import com.pokertool.model.AnalysisResult
+import com.pokertool.model.PlayerInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -32,9 +34,7 @@ class VisionAnalyzer(
         return withContext(Dispatchers.IO) {
             try {
                 val blackCheck = isBitmapBlank(bitmap)
-                if (blackCheck != null) {
-                    return@withContext errorResult(blackCheck)
-                }
+                if (blackCheck != null) return@withContext errorResult(blackCheck)
 
                 val base64 = bitmapToBase64(bitmap)
                 val responseText = callApi(base64, playStyle)
@@ -52,12 +52,36 @@ class VisionAnalyzer(
                 }
 
                 val potVal = extraction.pot.replace(",", "").replace(" ", "").toDoubleOrNull() ?: 0.0
+                val betToCall = extraction.betToCall
+                val opponents = (extraction.numPlayers - 1).coerceAtLeast(1)
 
                 val math = EquityCalculator.calculate(
                     holeCards = holeCards,
                     communityCards = boardCards,
-                    numOpponents = (extraction.numPlayers - 1).coerceAtLeast(1),
-                    pot = potVal
+                    numOpponents = opponents,
+                    pot = potVal,
+                    betToCall = betToCall
+                )
+
+                val myStackVal = extraction.myStack.replace(",", "").replace(" ", "").toDoubleOrNull() ?: 0.0
+
+                val advice = PokerAdvisor.advise(
+                    holeCards = holeCards,
+                    communityCards = boardCards,
+                    equity = math.equity,
+                    currentHand = math.currentHand,
+                    outs = math.outs,
+                    pot = potVal,
+                    betToCall = betToCall,
+                    myStack = myStackVal,
+                    myBet = extraction.myBet,
+                    bigBlind = extraction.bigBlind,
+                    ante = extraction.ante,
+                    position = extraction.myPosition,
+                    stage = extraction.stage,
+                    players = extraction.players,
+                    numPlayers = extraction.numPlayers,
+                    playStyle = playStyle
                 )
 
                 extraction.copy(
@@ -65,7 +89,13 @@ class VisionAnalyzer(
                     equity = math.equity,
                     handProbabilities = math.handProbabilities,
                     outs = math.outs,
-                    potOdds = math.potOdds
+                    potOdds = math.potOdds,
+                    action = advice.action,
+                    reasoning = advice.reasoning,
+                    confidence = advice.confidence,
+                    effectiveStackBB = advice.effectiveStackBB,
+                    spr = advice.spr,
+                    allInCount = extraction.players.count { it.isAllIn }
                 )
             } catch (e: Exception) {
                 errorResult("Помилка: ${e.message}")
@@ -88,8 +118,7 @@ class VisionAnalyzer(
         val darkRatio = darkPixels.toDouble() / total
         if (darkRatio > 0.95) {
             return "Скріншот чорний (${(darkRatio * 100).toInt()}% темних пікселів). " +
-                    "Можливо ClubGG блокує захоплення екрану. " +
-                    "Спробуйте вимкнути захист екрану в налаштуваннях ClubGG."
+                    "Можливо ClubGG блокує захоплення екрану."
         }
         return null
     }
@@ -101,31 +130,33 @@ class VisionAnalyzer(
     }
 
     private fun callApi(base64Image: String, playStyle: String): String {
-        val prompt = """Analyze this ClubGG poker table screenshot. Interface may be in Ukrainian, Russian, or English.
-Key terms: "Загальний банк"=total pot, "Блайнди"=blinds.
+        val prompt = """Analyze this ClubGG poker table screenshot. Interface is in Ukrainian/Russian/English.
+Key terms: "Загальний банк"=total pot, "Блайнди"=blinds, "Кол"=call amount, "Рейз до"=raise to, "Фолд"=fold, "Алл-ін"/"All-in", "Чек"=check.
 
-IMPORTANT AREAS TO CHECK:
-- BOTTOM of screen: hero's face-up hole cards (2 cards)
-- CENTER of table: community cards (0 on preflop, 3 on flop, 4 on turn, 5 on river)
-- Numbers near each player: chip stacks
-- Numbers ABOVE player avatars or near table center: bet amounts
-- Look for "All-in" or "Алл-ін" text near players who went all-in
+EXTRACT ALL INFORMATION:
+1. Hero's hole cards (face-up at bottom of screen)
+2. Community cards (center of table, 0-5 cards)
+3. Total pot ("Загальний банк" number)
+4. ALL players visible: name, stack (colored number under name), current bet (chips near player), whether they are all-in
+5. Blinds level (shown as "Блайнди : X/Y(Z)" where Z=ante)
+6. Hero's stack, position relative to D button
+7. Bet amounts from action buttons at bottom (Кол amount = bet_to_call)
+8. Hero's current bet in this round (chips near hero)
 
 Return ONLY valid JSON, no markdown:
-{"hole_cards":"8s Kh","community_cards":"Ks 5h Th 8c Jd","pot":"2058","blinds":"25/50","ante":"8","my_stack":"942","position":"BTN","num_players":3,"stage":"river","action":"CALL","reasoning":"Facing all-in with strong two pair, good equity to call"}
+{"hole_cards":"8s Kh","community_cards":"Ks 5h Th 8c Jd","pot":"17820","blinds":"400/800","ante":"120","my_stack":"17137","my_bet":"0","bet_to_call":"5940","position":"BB","num_players":5,"stage":"river","players":[{"name":"Toto62","stack":1507,"bet":0,"all_in":false},{"name":"bdisch","stack":38338,"bet":5940,"all_in":false},{"name":"Krindless","stack":16821,"bet":0,"all_in":false},{"name":"Oleksii97","stack":8390,"bet":0,"all_in":false},{"name":"JLukas","stack":17137,"bet":0,"all_in":false}]}
 
 Rules:
-- Cards: A,K,Q,J,T,9,8,7,6,5,4,3,2 + s/h/d/c. Space between cards: "Ah Kd"
-- community_cards="" if preflop
+- Cards: A,K,Q,J,T,9,8,7,6,5,4,3,2 + s/h/d/c (spade/heart/diamond/club). Space between cards: "Ah Kd"
+- community_cards="" if preflop (no cards on board)
 - stage: preflop/flop/turn/river
-- position: BTN/SB/BB/UTG/MP/CO/HJ (relative to D button)
-- action: FOLD/CHECK/CALL/RAISE ($playStyle style)
-- If someone went all-in, note it in reasoning and adjust action accordingly
-- For preflop with premium pairs (AA,KK,QQ,JJ,TT,AKs,AKo): usually RAISE or CALL all-in
-- reasoning: brief English explanation
-
-If hero cards face-down or between hands: hole_cards="?? ??" action="WAIT".
-Only {"error":"no_hand"} if NOT a poker table."""
+- position: BTN/SB/BB/UTG/MP/CO/HJ
+- bet_to_call: the "Кол" amount shown on button, or 0 if check/no action needed
+- my_bet: chips hero has already bet this round (shown near hero)
+- players: ALL visible players with exact stacks, bets, and all_in status
+- all_in=true if player has "All-in"/"Алл-ін" shown, or if their bet equals their full stack, or their stack shows 0 after betting
+- If hero's cards face-down or between hands: hole_cards="?? ??"
+- If NOT a poker table: return {"error":"no_hand"}"""
 
         val messagesArray = JsonArray().apply {
             add(JsonObject().apply {
@@ -148,8 +179,8 @@ Only {"error":"no_hand"} if NOT a poker table."""
 
         val payload = JsonObject().apply {
             addProperty("model", model)
-            addProperty("max_tokens", 500)
-            addProperty("temperature", 0.2)
+            addProperty("max_tokens", 700)
+            addProperty("temperature", 0.1)
             add("messages", messagesArray)
         }
 
@@ -193,17 +224,51 @@ Only {"error":"no_hand"} if NOT a poker table."""
 
         if (json.has("error")) {
             val errDetail = json.get("error")?.asString ?: "unknown"
-            return errorResult("AI відповів: $errDetail\nРодповідь: ${cleaned.take(200)}")
+            return errorResult("AI відповів: $errDetail\nВідповідь: ${cleaned.take(200)}")
         }
 
         val holeCards = json.get("hole_cards")?.asString ?: "?? ??"
+        val blindsStr = json.get("blinds")?.asString ?: "0/0"
+        val blindsParts = blindsStr.replace(" ", "").split("/")
+        val bigBlind = if (blindsParts.size >= 2) {
+            blindsParts[1].replace(",", "").toDoubleOrNull() ?: 0.0
+        } else 0.0
+        val anteVal = json.get("ante")?.asString?.replace(",", "")?.toDoubleOrNull() ?: 0.0
+
+        val betToCall = json.get("bet_to_call")?.let {
+            if (it.isJsonPrimitive) {
+                it.asString.replace(",", "").toDoubleOrNull() ?: 0.0
+            } else 0.0
+        } ?: 0.0
+
+        val myBet = json.get("my_bet")?.let {
+            if (it.isJsonPrimitive) {
+                it.asString.replace(",", "").toDoubleOrNull() ?: 0.0
+            } else 0.0
+        } ?: 0.0
+
+        val players = mutableListOf<PlayerInfo>()
+        if (json.has("players") && json.get("players").isJsonArray) {
+            val arr = json.getAsJsonArray("players")
+            for (elem in arr) {
+                try {
+                    val obj = elem.asJsonObject
+                    players.add(PlayerInfo(
+                        name = obj.get("name")?.asString ?: "?",
+                        stack = obj.get("stack")?.asDouble ?: 0.0,
+                        bet = obj.get("bet")?.asDouble ?: 0.0,
+                        isAllIn = obj.get("all_in")?.asBoolean ?: false
+                    ))
+                } catch (_: Exception) {}
+            }
+        }
 
         return AnalysisResult(
             holeCards = holeCards,
             communityCards = json.get("community_cards")?.asString ?: "",
             stage = json.get("stage")?.asString ?: "?",
             pot = json.get("pot")?.asString ?: "0",
-            blinds = json.get("blinds")?.asString ?: "?",
+            blinds = blindsStr,
             myStack = json.get("my_stack")?.asString ?: "?",
             myPosition = json.get("position")?.asString ?: "?",
             numPlayers = json.get("num_players")?.asInt ?: 2,
@@ -212,9 +277,15 @@ Only {"error":"no_hand"} if NOT a poker table."""
             handProbabilities = emptyMap(),
             outs = 0,
             potOdds = "",
-            action = json.get("action")?.asString ?: "?",
-            reasoning = json.get("reasoning")?.asString ?: "",
-            rawResponse = raw
+            action = "?",
+            reasoning = "",
+            rawResponse = raw,
+            betToCall = betToCall,
+            players = players,
+            allInCount = players.count { it.isAllIn },
+            bigBlind = bigBlind,
+            ante = anteVal,
+            myBet = myBet
         )
     }
 

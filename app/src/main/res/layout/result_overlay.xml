@@ -4,17 +4,16 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/result_overlay_bg"
-    android:padding="16dp"
-    android:layout_marginHorizontal="12dp"
+    android:padding="14dp"
+    android:layout_marginHorizontal="10dp"
     android:elevation="12dp">
 
-    <!-- Row 1: Action + Equity + Close -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="6dp">
 
         <TextView
             android:id="@+id/actionText"
@@ -22,7 +21,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="РЕЙЗ"
-            android:textSize="26sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@color/raise_green" />
 
@@ -31,7 +30,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="78%"
-            android:textSize="26sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@color/white"
             android:layout_marginEnd="12dp" />
@@ -46,7 +45,6 @@
             android:gravity="center" />
     </LinearLayout>
 
-    <!-- Row 2: Cards + Hand -->
     <TextView
         android:id="@+id/cardsText"
         android:layout_width="match_parent"
@@ -54,31 +52,49 @@
         android:text="8♠ K♥ → Дві пари"
         android:textSize="15sp"
         android:textColor="@color/call_yellow"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="6dp" />
 
-    <!-- Row 3: Probabilities -->
     <TextView
         android:id="@+id/probsText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Каре 0% | Фул 4% | Флеш 0% | Стріт 0%"
-        android:textSize="12sp"
+        android:text=""
+        android:textSize="11sp"
         android:textColor="@color/on_surface_dim"
         android:fontFamily="monospace"
         android:lineSpacingExtra="2dp"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="4dp" />
 
-    <!-- Row 4: Outs + Pot odds + Info -->
+    <TextView
+        android:id="@+id/mathText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="12sp"
+        android:textColor="#CCFFFFFF"
+        android:lineSpacingExtra="2dp"
+        android:layout_marginBottom="4dp" />
+
     <TextView
         android:id="@+id/infoText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Аутів: 4 | Банк: 2,058 | Стек: 942"
+        android:text=""
         android:textSize="11sp"
         android:textColor="#88FFFFFF"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="4dp" />
 
-    <!-- Row 5: Reasoning -->
+    <TextView
+        android:id="@+id/playersText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="10sp"
+        android:textColor="#77FFFFFF"
+        android:fontFamily="monospace"
+        android:maxLines="6"
+        android:layout_marginBottom="4dp" />
+
     <TextView
         android:id="@+id/reasoningText"
         android:layout_width="match_parent"
@@ -86,6 +102,6 @@
         android:text=""
         android:textSize="12sp"
         android:textColor="@color/on_surface_dim"
-        android:maxLines="6" />
+        android:maxLines="8" />
 
 </LinearLayout>

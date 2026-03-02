@@ -401,7 +401,9 @@ class PokerToolService : Service() {
         val equityText = resultOverlay?.findViewById<TextView>(R.id.equityText)
         val cardsText = resultOverlay?.findViewById<TextView>(R.id.cardsText)
         val probsText = resultOverlay?.findViewById<TextView>(R.id.probsText)
+        val mathText = resultOverlay?.findViewById<TextView>(R.id.mathText)
         val infoText = resultOverlay?.findViewById<TextView>(R.id.infoText)
+        val playersText = resultOverlay?.findViewById<TextView>(R.id.playersText)
         val reasoningText = resultOverlay?.findViewById<TextView>(R.id.reasoningText)
         val btnClose = resultOverlay?.findViewById<TextView>(R.id.btnClose)
 
@@ -439,13 +441,35 @@ class PokerToolService : Service() {
             probsText?.text = result.currentHand
         }
 
+        val mathParts = mutableListOf<String>()
+        if (result.betToCall > 0) mathParts.add("Кол: %.0f".format(result.betToCall))
+        if (result.potOdds.isNotBlank()) mathParts.add("Пот-одси: ${result.potOdds}")
+        if (result.outs > 0) mathParts.add("Аутів: ${result.outs}")
+        if (result.spr > 0 && result.spr < 50) mathParts.add("SPR: %.1f".format(result.spr))
+        if (result.effectiveStackBB > 0) mathParts.add("%.0fBB".format(result.effectiveStackBB))
+        if (result.allInCount > 0) mathParts.add("ALL-IN: ${result.allInCount}")
+        mathText?.text = mathParts.joinToString(" | ")
+        mathText?.visibility = if (mathParts.isEmpty()) View.GONE else View.VISIBLE
+
         val infoParts = mutableListOf<String>()
-        if (result.outs > 0) infoParts.add("Аутів: ${result.outs}")
-        if (result.potOdds.isNotBlank()) infoParts.add("Пот-одси: ${result.potOdds}")
         infoParts.add("Банк: ${result.pot}")
         infoParts.add("Стек: ${result.myStack}")
         infoParts.add(result.myPosition)
+        infoParts.add("Блайнди: ${result.blinds}")
         infoText?.text = infoParts.joinToString(" | ")
+
+        if (result.players.isNotEmpty()) {
+            val sb = StringBuilder()
+            for (p in result.players) {
+                val allInMark = if (p.isAllIn) " ALL-IN" else ""
+                val betMark = if (p.bet > 0) " bet:%.0f".format(p.bet) else ""
+                sb.append("${p.name}: %.0f$betMark$allInMark\n".format(p.stack))
+            }
+            playersText?.text = sb.toString().trim()
+            playersText?.visibility = View.VISIBLE
+        } else {
+            playersText?.visibility = View.GONE
+        }
 
         reasoningText?.text = result.reasoning
 
@@ -466,7 +490,7 @@ class PokerToolService : Service() {
             windowManager.addView(resultOverlay, params)
         } catch (_: Exception) {}
 
-        handler.postDelayed({ dismissResult() }, 15000)
+        handler.postDelayed({ dismissResult() }, 20000)
     }
 
     private fun formatCards(cards: String): String {
