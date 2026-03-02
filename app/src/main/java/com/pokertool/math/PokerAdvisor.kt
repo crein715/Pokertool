@@ -39,7 +39,6 @@ object PokerAdvisor {
         val effectiveStack = myStack / bb
         val allInPlayers = players.filter { it.isAllIn }
         val isAllInSituation = allInPlayers.isNotEmpty()
-        val activePlayers = players.filter { it.stack > 0 || it.isAllIn }
         val opponents = (numPlayers - 1).coerceAtLeast(1)
 
         val totalPot = pot.coerceAtLeast(1.0)
@@ -57,13 +56,12 @@ object PokerAdvisor {
         } else potOddsNeeded
 
         if (stage == "preflop") {
-            val preflopResult = preflopAdvice(
+            return preflopAdvice(
                 holeCards, equity, effectiveStack, pot, betToCall, myStack,
                 bb, ante, position, isAllInSituation, allInPlayers.size,
                 opponents, playStyle, spr, potOddsNeeded, committedRatio,
                 mainPot, sidePots
             )
-            return preflopResult
         }
 
         return postflopAdvice(
@@ -127,42 +125,49 @@ object PokerAdvisor {
             )
         }
 
-        val reasons = mutableListOf<String>()
+        val lines = mutableListOf<String>()
         val action: String
+        val tierName = tierNameUk(tier)
 
         when {
             betToCall <= 0 || betToCall <= bb -> {
                 when {
                     tier <= 2 -> {
                         action = "RAISE"
-                        reasons.add("Premium hand (tier $tier)")
-                        reasons.add("Raise to ${(bb * 3).toInt()}-${(bb * 4).toInt()}")
+                        lines.add("▸ Рука: $tierName (тір $tier)")
+                        lines.add("▸ Рішення: рейз ${(bb * 3).toInt()}-${(bb * 4).toInt()}")
                     }
                     tier <= 4 -> {
                         val raisePositions = listOf("BTN", "CO", "HJ", "SB")
                         if (position.uppercase() in raisePositions || opponents <= 2) {
                             action = "RAISE"
-                            reasons.add("Strong hand (tier $tier) in $position")
+                            lines.add("▸ Рука: $tierName з $position")
+                            lines.add("▸ Рішення: рейз з пізньої позиції")
                         } else {
                             action = "CALL"
-                            reasons.add("Good hand (tier $tier), limp from $position")
+                            lines.add("▸ Рука: $tierName (тір $tier)")
+                            lines.add("▸ Рішення: лімп з $position")
                         }
                     }
                     tier <= 6 && position.uppercase() in listOf("BTN", "CO", "SB") -> {
                         action = if (opponents <= 3) "RAISE" else "CALL"
-                        reasons.add("Playable hand from late position")
+                        lines.add("▸ Рука: грабельна з пізньої позиції")
+                        lines.add("▸ Рішення: ${if (action == "RAISE") "рейз" else "колл"} ($opponents суперників)")
                     }
                     tier <= 5 -> {
                         action = "CALL"
-                        reasons.add("Decent hand (tier $tier), call BB")
+                        lines.add("▸ Рука: непогана (тір $tier)")
+                        lines.add("▸ Рішення: колл ББ")
                     }
                     tier <= 7 && position.uppercase() in listOf("BTN", "CO") -> {
                         action = "CALL"
-                        reasons.add("Speculative hand from $position")
+                        lines.add("▸ Рука: спекулятивна з $position")
+                        lines.add("▸ Рішення: колл для позиції")
                     }
                     else -> {
                         action = "FOLD"
-                        reasons.add("Weak hand (tier $tier) from $position")
+                        lines.add("▸ Рука: слабка (тір $tier) з $position")
+                        lines.add("▸ Рішення: не варто грати")
                     }
                 }
             }
@@ -170,23 +175,23 @@ object PokerAdvisor {
                 when {
                     tier <= 2 -> {
                         action = "RAISE"
-                        reasons.add("Premium hand, re-raise to ${(betToCall * 3).toInt()}")
+                        lines.add("▸ Рука: $tierName — 3-бет до ${(betToCall * 3).toInt()}")
                     }
                     tier <= 3 -> {
                         action = "CALL"
-                        reasons.add("Strong hand (tier $tier), call open raise")
+                        lines.add("▸ Рука: $tierName — колл опен-рейзу")
                     }
                     tier <= 5 && position.uppercase() in listOf("BTN", "CO", "BB") -> {
                         action = "CALL"
-                        reasons.add("Playable hand in position")
+                        lines.add("▸ Рука: грабельна в позиції $position")
                     }
                     tier <= 4 && spr > 10 -> {
                         action = "CALL"
-                        reasons.add("Good implied odds with deep stacks")
+                        lines.add("▸ Рука: тір $tier, глибокі стеки → імплайд одси")
                     }
                     else -> {
                         action = "FOLD"
-                        reasons.add("Tier $tier hand, fold to raise from $position")
+                        lines.add("▸ Рука: тір $tier — фолд на рейз з $position")
                     }
                 }
             }
@@ -194,19 +199,19 @@ object PokerAdvisor {
                 when {
                     tier <= 1 -> {
                         action = "RAISE"
-                        reasons.add("Premium, 4-bet to ${(betToCall * 2.5).toInt()}")
+                        lines.add("▸ Рука: $tierName — 4-бет до ${(betToCall * 2.5).toInt()}")
                     }
                     tier <= 2 -> {
                         action = "CALL"
-                        reasons.add("Strong hand, call 3-bet")
+                        lines.add("▸ Рука: $tierName — колл 3-бету")
                     }
                     tier <= 3 && spr > 8 -> {
                         action = "CALL"
-                        reasons.add("Good hand with deep stacks, set mining")
+                        lines.add("▸ Рука: тір $tier, глибокі стеки → сет-майнінг")
                     }
                     else -> {
                         action = "FOLD"
-                        reasons.add("Fold tier $tier to 3-bet")
+                        lines.add("▸ Рука: тір $tier — фолд на 3-бет")
                     }
                 }
             }
@@ -214,15 +219,15 @@ object PokerAdvisor {
                 when {
                     tier <= 1 -> {
                         action = "RAISE"
-                        reasons.add("Premium hand, push vs big 4-bet")
+                        lines.add("▸ Рука: $tierName — пуш проти великого 4-бету")
                     }
                     tier <= 2 && committedRatio > 0.3 -> {
                         action = "CALL"
-                        reasons.add("Committed %.0f%%, call with tier $tier".format(committedRatio * 100))
+                        lines.add("▸ Вже вкладено %.0f%% стеку — колл з тір $tier".format(committedRatio * 100))
                     }
                     else -> {
                         action = "FOLD"
-                        reasons.add("Fold to heavy action with tier $tier")
+                        lines.add("▸ Рука: тір $tier — фолд на важку агресію")
                     }
                 }
             }
@@ -230,14 +235,16 @@ object PokerAdvisor {
 
         val adjustedAction = applyStyleAdjustment(action, styleMultiplier, tier)
 
-        reasons.add("Stack: %.0fBB | SPR: %.1f".format(effectiveStack, spr))
-        if (potOddsNeeded > 0) reasons.add("Need %.0f%% equity, have %.0f%%".format(potOddsNeeded, equity))
+        lines.add("▸ Стек: %.0fBB | SPR: %.1f".format(effectiveStack, spr))
+        if (potOddsNeeded > 0) {
+            lines.add("▸ Потрібно: %.0f%% еквіті, маємо: %.0f%%".format(potOddsNeeded, equity))
+        }
 
         val confidence = calculateConfidence(tier, equity, potOddsNeeded, adjustedAction)
 
         return AdvisorResult(
             action = adjustedAction,
-            reasoning = reasons.joinToString(". "),
+            reasoning = lines.joinToString("\n"),
             confidence = confidence,
             effectiveStackBB = effectiveStack,
             spr = spr,
@@ -264,59 +271,62 @@ object PokerAdvisor {
         sidePots: List<Double>,
         styleMultiplier: Double
     ): AdvisorResult {
-        val reasons = mutableListOf<String>()
-        reasons.add("ALL-IN situation ($allInCount player${if (allInCount > 1) "s" else ""} all-in)")
+        val lines = mutableListOf<String>()
+        lines.add("⚠ ALL-IN ($allInCount гравц${playerSuffix(allInCount)} пішл${if (allInCount > 1) "и" else "ов"} ва-банк)")
 
         val isCallForStack = betToCall >= myStack * 0.9
         val actualPotOdds = if (isCallForStack) {
             (myStack / (pot + myStack)) * 100.0
         } else potOddsNeeded
 
-        reasons.add("Pot odds need %.0f%%, equity %.0f%%".format(actualPotOdds, equity))
+        val ev = (equity / 100.0) * (pot + betToCall) - (1 - equity / 100.0) * betToCall
+
+        lines.add("▸ Потрібно еквіті: %.0f%%".format(actualPotOdds))
+        lines.add("▸ Наше еквіті: %.0f%%".format(equity))
+        lines.add("▸ EV колу: %+.0f фішок".format(ev))
 
         val action: String
-        val ev = (equity / 100.0) * (pot + betToCall) - (1 - equity / 100.0) * betToCall
 
         when {
             committedRatio > 0.5 && equity > 25 -> {
                 action = "CALL"
-                reasons.add("Already committed %.0f%% of stack".format(committedRatio * 100))
+                lines.add("▸ Вже вкладено %.0f%% стеку — зобов'язані колити".format(committedRatio * 100))
             }
             equity > actualPotOdds + 5 -> {
                 action = "CALL"
-                reasons.add("+EV call (EV=%.0f chips)".format(ev))
+                lines.add("▸ +EV кол, еквіті достатньо")
             }
             equity > actualPotOdds - 3 && tier <= 4 -> {
                 action = "CALL"
-                reasons.add("Borderline but strong hand tier $tier")
+                lines.add("▸ Сильна рука (тір $tier), граничний кол")
             }
             tier <= 1 -> {
                 action = "CALL"
-                reasons.add("Premium hand — always call all-in")
+                lines.add("▸ Преміум рука — завжди колимо олл-ін")
             }
             isCallForStack && equity < 35 && tier > 3 -> {
                 action = "FOLD"
-                reasons.add("All-in for entire stack, equity too low")
+                lines.add("▸ Олл-ін за весь стек, еквіті замало")
             }
             equity >= actualPotOdds -> {
                 action = "CALL"
-                reasons.add("Equity sufficient for call")
+                lines.add("▸ Еквіті достатньо для колу")
             }
             else -> {
                 action = "FOLD"
-                reasons.add("Equity %.0f%% < needed %.0f%%".format(equity, actualPotOdds))
+                lines.add("▸ Еквіті %.0f%% < потрібних %.0f%%".format(equity, actualPotOdds))
             }
         }
 
         if (allInCount >= 2) {
-            reasons.add("Multi-way all-in: equity drops, tighten range")
+            lines.add("▸ Мультіпот: еквіті падає проти кількох")
         }
 
-        reasons.add("Stack: %.0fBB".format(effectiveStack))
+        lines.add("▸ Стек: %.0fBB".format(effectiveStack))
 
         return AdvisorResult(
             action = action,
-            reasoning = reasons.joinToString(". "),
+            reasoning = lines.joinToString("\n"),
             confidence = calculateConfidence(tier, equity, actualPotOdds, action),
             effectiveStackBB = effectiveStack,
             spr = if (pot > 0) myStack / pot else 99.0,
@@ -343,11 +353,11 @@ object PokerAdvisor {
         styleMultiplier: Double,
         isDesperate: Boolean
     ): AdvisorResult {
-        val reasons = mutableListOf<String>()
+        val lines = mutableListOf<String>()
         val pushThreshold: Int
 
         if (isDesperate) {
-            reasons.add("DESPERATE: %.0fBB — push/fold mode".format(effectiveStack))
+            lines.add("🔴 КРИТИЧНО: %.0fBB — режим пуш/фолд".format(effectiveStack))
             pushThreshold = when (position.uppercase()) {
                 "BTN" -> 9
                 "CO", "SB" -> 8
@@ -357,7 +367,7 @@ object PokerAdvisor {
                 else -> 5
             }
         } else {
-            reasons.add("SHORT STACK: %.0fBB — push/fold zone".format(effectiveStack))
+            lines.add("🟡 КОРОТКИЙ СТЕК: %.0fBB — зона пуш/фолд".format(effectiveStack))
             pushThreshold = when (position.uppercase()) {
                 "BTN" -> 8
                 "CO" -> 7
@@ -375,29 +385,31 @@ object PokerAdvisor {
         if (betToCall <= bb * 1.5) {
             if (tier <= adjustedThreshold) {
                 action = "RAISE"
-                reasons.add("Push all-in with tier $tier (threshold $adjustedThreshold in $position)")
-                reasons.add("Fold equity + showdown value")
+                lines.add("▸ Тір $tier ≤ поріг $adjustedThreshold ($position)")
+                lines.add("▸ Пуш олл-ін: фолд-еквіті + шоудаун")
             } else {
                 action = "FOLD"
-                reasons.add("Tier $tier > threshold $adjustedThreshold, wait for better spot")
+                lines.add("▸ Тір $tier > поріг $adjustedThreshold")
+                lines.add("▸ Чекаємо кращу руку")
             }
         } else {
             val potOdds = (betToCall / (pot + betToCall)) * 100.0
             if (equity > potOdds && tier <= adjustedThreshold + 1) {
                 action = "CALL"
-                reasons.add("Getting %.0f%% pot odds, need %.0f%%".format(potOdds, equity))
+                lines.add("▸ Пот-одси: %.0f%%, еквіті: %.0f%%".format(potOdds, equity))
+                lines.add("▸ Колл з коротким стеком")
             } else if (tier <= 2) {
                 action = "RAISE"
-                reasons.add("Premium short stack — reshove all-in")
+                lines.add("▸ Преміум на короткому стеку — рішов олл-ін")
             } else {
                 action = "FOLD"
-                reasons.add("Not enough equity for short stack call")
+                lines.add("▸ Недостатньо еквіті для колу на короткому стеку")
             }
         }
 
         return AdvisorResult(
             action = action,
-            reasoning = reasons.joinToString(". "),
+            reasoning = lines.joinToString("\n"),
             confidence = calculateConfidence(tier, equity, 0.0, action),
             effectiveStackBB = effectiveStack,
             spr = if (pot > 0) myStack / pot else 99.0,
@@ -433,7 +445,7 @@ object PokerAdvisor {
         mainPot: Double,
         sidePots: List<Double>
     ): AdvisorResult {
-        val reasons = mutableListOf<String>()
+        val lines = mutableListOf<String>()
         val handStrength = getHandStrengthCategory(currentHand)
         val styleMultiplier = when (playStyle.lowercase()) {
             "тайт", "tight" -> 0.9
@@ -442,47 +454,49 @@ object PokerAdvisor {
         }
 
         val tier = getHandTier(holeCards)
+        val stageUk = stageNameUk(stage)
 
         if (isAllIn && betToCall > 0) {
-            reasons.add("ALL-IN on $stage ($allInCount all-in)")
+            lines.add("⚠ ALL-IN на $stageUk ($allInCount ва-банк)")
             val isCallForStack = betToCall >= myStack * 0.9
 
             val ev = (equity / 100.0) * (pot + betToCall) - (1 - equity / 100.0) * betToCall
-            reasons.add("EV of call: %.0f chips".format(ev))
-            reasons.add("Equity %.0f%% vs needed %.0f%%".format(equity, potOddsNeeded))
+            lines.add("▸ Рука: $currentHand")
+            lines.add("▸ EV колу: %+.0f фішок".format(ev))
+            lines.add("▸ Еквіті: %.0f%% / потрібно: %.0f%%".format(equity, potOddsNeeded))
 
             val action = when {
                 committedRatio > 0.5 && equity > 20 -> {
-                    reasons.add("Pot committed (%.0f%%)".format(committedRatio * 100))
+                    lines.add("▸ Вкладено %.0f%% стеку — зобов'язані".format(committedRatio * 100))
                     "CALL"
                 }
                 equity > potOddsNeeded + 3 -> {
-                    reasons.add("+EV call")
+                    lines.add("▸ +EV кол")
                     "CALL"
                 }
                 handStrength >= 4 -> {
-                    reasons.add("Strong made hand: $currentHand")
+                    lines.add("▸ Сильна готова рука")
                     "CALL"
                 }
                 equity > potOddsNeeded && handStrength >= 2 -> {
-                    reasons.add("Marginal but sufficient equity with $currentHand")
+                    lines.add("▸ Достатньо еквіті з $currentHand")
                     "CALL"
                 }
                 isCallForStack && equity < 30 -> {
-                    reasons.add("Stack at risk, not enough equity")
+                    lines.add("▸ Весь стек під ризиком, еквіті мало")
                     "FOLD"
                 }
                 else -> {
-                    reasons.add("Insufficient equity to call all-in")
+                    lines.add("▸ Недостатньо еквіті для колу олл-іну")
                     "FOLD"
                 }
             }
 
-            if (allInCount >= 2) reasons.add("Multi-way all-in")
-            reasons.add("SPR: %.1f | Stack: %.0fBB".format(spr, effectiveStack))
+            if (allInCount >= 2) lines.add("▸ Мультіпот: еквіті знижується")
+            lines.add("▸ Стек: %.0fBB | SPR: %.1f".format(effectiveStack, spr))
 
             return AdvisorResult(
-                action = action, reasoning = reasons.joinToString(". "),
+                action = action, reasoning = lines.joinToString("\n"),
                 confidence = calculateConfidence(tier, equity, potOddsNeeded, action),
                 effectiveStackBB = effectiveStack, spr = spr,
                 potOddsNeeded = potOddsNeeded, isAllInSituation = true,
@@ -490,44 +504,46 @@ object PokerAdvisor {
             )
         }
 
+        lines.add("▸ $stageUk | $currentHand")
         val action: String
 
         if (betToCall <= 0) {
             when {
                 handStrength >= 5 -> {
                     action = "RAISE"
-                    reasons.add("Monster hand: $currentHand — value bet")
-                    reasons.add("Bet ${(pot * 0.66).toInt()}-${(pot * 0.80).toInt()}")
+                    lines.add("▸ Монстр — вел'ю бет")
+                    lines.add("▸ Ставка: ${(pot * 0.66).toInt()}-${(pot * 0.80).toInt()}")
                 }
                 handStrength >= 3 && spr > 2 -> {
                     action = "RAISE"
-                    reasons.add("Strong hand $currentHand, bet for value")
-                    reasons.add("SPR %.1f allows value betting".format(spr))
+                    lines.add("▸ Сильна рука — ставка для вел'ю")
+                    lines.add("▸ SPR %.1f — є простір для ставок".format(spr))
                 }
                 handStrength >= 2 -> {
                     if (outs > 8 && stage != "river") {
                         action = "RAISE"
-                        reasons.add("Good draw ($outs outs) + made hand, semi-bluff")
+                        lines.add("▸ Дро ($outs аутів) + готова рука")
+                        lines.add("▸ Напівблеф")
                     } else {
                         action = "CHECK"
-                        reasons.add("Medium hand $currentHand, pot control")
+                        lines.add("▸ Середня рука — контроль банку")
                     }
                 }
                 outs >= 12 && stage != "river" -> {
                     action = "RAISE"
-                    reasons.add("Big draw ($outs outs), semi-bluff")
+                    lines.add("▸ Велике дро ($outs аутів) — напівблеф")
                 }
                 outs >= 8 && stage != "river" -> {
                     action = "CHECK"
-                    reasons.add("Drawing hand ($outs outs), free card")
+                    lines.add("▸ Дро ($outs аутів) — безкоштовна карта")
                 }
                 equity > 60 -> {
                     action = "RAISE"
-                    reasons.add("High equity %.0f%%, bet".format(equity))
+                    lines.add("▸ Високе еквіті %.0f%% — ставка".format(equity))
                 }
                 else -> {
                     action = "CHECK"
-                    reasons.add("Weak hand, check")
+                    lines.add("▸ Слабка рука — чек")
                 }
             }
         } else {
@@ -541,63 +557,90 @@ object PokerAdvisor {
             when {
                 spr < 1.0 && handStrength >= 1 -> {
                     action = "CALL"
-                    reasons.add("Low SPR %.1f, committed to pot".format(spr))
+                    lines.add("▸ SPR %.1f — зобов'язані в банку".format(spr))
                 }
                 committedRatio > 0.4 && combinedEquity > 25 -> {
                     action = "CALL"
-                    reasons.add("Pot committed %.0f%%, equity %.0f%%".format(committedRatio * 100, combinedEquity))
+                    lines.add("▸ Вкладено %.0f%% стеку, еквіті %.0f%%".format(committedRatio * 100, combinedEquity))
                 }
                 handStrength >= 5 -> {
                     action = "RAISE"
-                    reasons.add("Monster hand $currentHand, raise for value")
+                    lines.add("▸ Монстр — рейз для вел'ю")
                 }
                 handStrength >= 3 && combinedEquity > potOddsNeeded -> {
                     if (spr > 3 && betToCall < pot) {
                         action = "RAISE"
-                        reasons.add("Strong hand + equity, raise")
+                        lines.add("▸ Сильна рука + еквіті — рейз")
                     } else {
                         action = "CALL"
-                        reasons.add("Strong hand $currentHand, call")
+                        lines.add("▸ Сильна рука — колл")
                     }
                 }
                 combinedEquity > potOddsNeeded -> {
                     if (drawEquity > equity && outs >= 8) {
                         action = "CALL"
-                        reasons.add("Draw with $outs outs (%.0f%% draw equity)".format(drawEquity))
+                        lines.add("▸ Дро: $outs аутів (%.0f%% еквіті дро)".format(drawEquity))
                     } else {
                         action = "CALL"
-                        reasons.add("Equity %.0f%% > needed %.0f%%".format(combinedEquity, potOddsNeeded))
+                        lines.add("▸ Еквіті %.0f%% > потрібних %.0f%%".format(combinedEquity, potOddsNeeded))
                     }
                 }
                 combinedEquity > impliedOdds && myStack > betToCall * 5 -> {
                     action = "CALL"
-                    reasons.add("Implied odds: deep enough for potential payoff")
+                    lines.add("▸ Імплайд одси: достатньо глибокі стеки")
                 }
                 handStrength >= 2 && betToCall < pot * 0.33 -> {
                     action = "CALL"
-                    reasons.add("Small bet, decent hand, call to see next card")
+                    lines.add("▸ Мала ставка — колл для наступної карти")
                 }
                 else -> {
                     action = "FOLD"
-                    reasons.add("Equity %.0f%% < needed %.0f%%".format(combinedEquity, potOddsNeeded))
-                    if (handStrength <= 1) reasons.add("Weak hand: $currentHand")
+                    lines.add("▸ Еквіті %.0f%% < потрібних %.0f%%".format(combinedEquity, potOddsNeeded))
+                    if (handStrength <= 1) lines.add("▸ Слабка рука: $currentHand")
                 }
             }
         }
 
         val adjustedAction = applyStyleAdjustment(action, styleMultiplier, tier)
 
-        reasons.add("$stage | SPR: %.1f | Stack: %.0fBB".format(spr, effectiveStack))
-        if (potOddsNeeded > 0) reasons.add("Pot odds: %.0f%% needed".format(potOddsNeeded))
+        lines.add("▸ Стек: %.0fBB | SPR: %.1f".format(effectiveStack, spr))
+        if (potOddsNeeded > 0) lines.add("▸ Пот-одси: потрібно %.0f%%".format(potOddsNeeded))
 
         return AdvisorResult(
             action = adjustedAction,
-            reasoning = reasons.joinToString(". "),
+            reasoning = lines.joinToString("\n"),
             confidence = calculateConfidence(tier, equity, potOddsNeeded, adjustedAction),
             effectiveStackBB = effectiveStack, spr = spr,
             potOddsNeeded = potOddsNeeded, isAllInSituation = isAllIn,
             mainPotSize = mainPot, sidePots = sidePots
         )
+    }
+
+    private fun tierNameUk(tier: Int): String = when (tier) {
+        1 -> "Преміум"
+        2 -> "Дуже сильна"
+        3 -> "Сильна"
+        4 -> "Вище середньої"
+        5 -> "Середня"
+        6 -> "Нижче середньої"
+        7 -> "Спекулятивна"
+        8 -> "Слабка"
+        9 -> "Дуже слабка"
+        else -> "Сміття"
+    }
+
+    private fun stageNameUk(stage: String): String = when (stage.lowercase()) {
+        "preflop" -> "Префлоп"
+        "flop" -> "Флоп"
+        "turn" -> "Тьорн"
+        "river" -> "Рівер"
+        else -> stage
+    }
+
+    private fun playerSuffix(count: Int): String = when {
+        count == 1 -> "ь"
+        count in 2..4 -> "і"
+        else -> "ів"
     }
 
     private fun getHandTier(cards: List<Card>): Int {
@@ -611,32 +654,32 @@ object PokerAdvisor {
         val gap = high - low
 
         return when {
-            pair && high >= 13 -> 1            // AA, KK
-            pair && high == 12 -> 1            // QQ
-            high == 14 && low == 13 -> 1       // AK
-            pair && high >= 10 -> 2            // JJ, TT
-            high == 14 && low == 12 -> 2       // AQ
-            high == 14 && low == 11 && suited -> 2  // AJs
-            pair && high == 9 -> 3             // 99
-            high == 14 && low == 11 -> 3       // AJo
-            high == 14 && low == 10 && suited -> 3  // ATs
-            high == 13 && low == 12 && suited -> 3  // KQs
-            pair && high >= 7 -> 4             // 88, 77
-            high == 14 && low >= 8 && suited -> 4   // A8s-A9s
-            high == 13 && low >= 11 -> 4       // KJ, KQ
-            high == 12 && low == 11 && suited -> 4  // QJs
-            pair && high >= 5 -> 5             // 66, 55
-            high == 14 && low >= 2 && suited -> 5   // Axs
-            high == 13 && low == 10 && suited -> 5  // KTs
-            high == 12 && low == 10 && suited -> 5  // QTs
-            high == 11 && low == 10 && suited -> 5  // JTs
-            suited && gap <= 2 && high >= 7 -> 5     // connected suited
-            pair && high >= 2 -> 6             // low pairs
-            high == 14 && low >= 9 -> 6        // ATo+
-            high == 13 && low >= 9 -> 6        // K9+
+            pair && high >= 13 -> 1
+            pair && high == 12 -> 1
+            high == 14 && low == 13 -> 1
+            pair && high >= 10 -> 2
+            high == 14 && low == 12 -> 2
+            high == 14 && low == 11 && suited -> 2
+            pair && high == 9 -> 3
+            high == 14 && low == 11 -> 3
+            high == 14 && low == 10 && suited -> 3
+            high == 13 && low == 12 && suited -> 3
+            pair && high >= 7 -> 4
+            high == 14 && low >= 8 && suited -> 4
+            high == 13 && low >= 11 -> 4
+            high == 12 && low == 11 && suited -> 4
+            pair && high >= 5 -> 5
+            high == 14 && low >= 2 && suited -> 5
+            high == 13 && low == 10 && suited -> 5
+            high == 12 && low == 10 && suited -> 5
+            high == 11 && low == 10 && suited -> 5
+            suited && gap <= 2 && high >= 7 -> 5
+            pair && high >= 2 -> 6
+            high == 14 && low >= 9 -> 6
+            high == 13 && low >= 9 -> 6
             suited && gap <= 3 && high >= 6 -> 6
-            high == 14 -> 7                    // Axo
-            suited && gap <= 1 && high >= 5 -> 7     // suited connectors
+            high == 14 -> 7
+            suited && gap <= 1 && high >= 5 -> 7
             high == 13 && low >= 7 -> 7
             high == 12 && low >= 9 -> 7
             suited && high >= 9 -> 8

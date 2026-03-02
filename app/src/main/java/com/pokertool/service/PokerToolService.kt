@@ -461,8 +461,8 @@ class PokerToolService : Service() {
         if (result.players.isNotEmpty()) {
             val sb = StringBuilder()
             for (p in result.players) {
-                val allInMark = if (p.isAllIn) " ALL-IN" else ""
-                val betMark = if (p.bet > 0) " bet:%.0f".format(p.bet) else ""
+                val allInMark = if (p.isAllIn) " ⚡ВА-БАНК" else ""
+                val betMark = if (p.bet > 0) " ставка:%.0f".format(p.bet) else ""
                 sb.append("${p.name}: %.0f$betMark$allInMark\n".format(p.stack))
             }
             playersText?.text = sb.toString().trim()
