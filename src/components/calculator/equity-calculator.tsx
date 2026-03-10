@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { ChevronDown, ChevronUp, Info, Loader2 } from "lucide-react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { Loader2, Info } from "lucide-react";
 import type { Card } from "@/lib/poker-data";
 import { suitSymbols } from "@/lib/poker-data";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ export function EquityCalculator() {
   const [result, setResult] = useState<EquityResult | null>(null);
   const [computing, setComputing] = useState(false);
   const [presetNote, setPresetNote] = useState<string>("");
-  const [howToUse, setHowToUse] = useState(false);
+  const autoCalcRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const allSelected: Card[] = useMemo(() => {
     return [...hand1, ...hand2, ...board].filter((c): c is Card => c !== null);
@@ -34,6 +34,34 @@ export function EquityCalculator() {
     hand1[1] !== null &&
     hand2[0] !== null &&
     hand2[1] !== null;
+
+  const runCalculation = useCallback(() => {
+    if (!canCalculate) return;
+    setComputing(true);
+    setTimeout(() => {
+      const boardCards = board.filter((c): c is Card => c !== null);
+      const eq = calculateEquity(
+        [hand1[0]!, hand1[1]!],
+        [hand2[0]!, hand2[1]!],
+        boardCards,
+        10000
+      );
+      setResult(eq);
+      setComputing(false);
+    }, 50);
+  }, [hand1, hand2, board, canCalculate]);
+
+  useEffect(() => {
+    if (autoCalcRef.current) clearTimeout(autoCalcRef.current);
+    if (canCalculate) {
+      autoCalcRef.current = setTimeout(() => {
+        runCalculation();
+      }, 100);
+    } else {
+      setResult(null);
+    }
+    return () => { if (autoCalcRef.current) clearTimeout(autoCalcRef.current); };
+  }, [hand1, hand2, board, canCalculate, runCalculation]);
 
   const PRESETS = useMemo(() => [
     {
@@ -68,24 +96,6 @@ export function EquityCalculator() {
     },
   ], [t]);
 
-  const handleCalculate = useCallback(() => {
-    if (!canCalculate) return;
-    setComputing(true);
-    setResult(null);
-
-    setTimeout(() => {
-      const boardCards = board.filter((c): c is Card => c !== null);
-      const eq = calculateEquity(
-        [hand1[0]!, hand1[1]!],
-        [hand2[0]!, hand2[1]!],
-        boardCards,
-        10000
-      );
-      setResult(eq);
-      setComputing(false);
-    }, 50);
-  }, [hand1, hand2, board, canCalculate]);
-
   const handlePreset = useCallback((preset: typeof PRESETS[number]) => {
     setHand1([preset.hand1[0], preset.hand1[1]]);
     setHand2([preset.hand2[0], preset.hand2[1]]);
@@ -106,21 +116,6 @@ export function EquityCalculator() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => setHowToUse(!howToUse)}
-        className="flex items-center gap-2 text-xs text-white/40 hover:text-white/60 transition-colors"
-      >
-        <Info className="h-3.5 w-3.5" />
-        <span>{t("equity.howToUse")}</span>
-        {howToUse ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-      </button>
-      {howToUse && (
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 text-xs text-white/50 space-y-2">
-          <p>{t("equity.helpText1")}</p>
-          <p>{t("equity.helpText2")}</p>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <div className="text-xs font-semibold text-green-400 uppercase tracking-wider">{t("equity.yourHand")}</div>
@@ -154,27 +149,8 @@ export function EquityCalculator() {
 
       <div className="flex gap-3">
         <button
-          onClick={handleCalculate}
-          disabled={!canCalculate || computing}
-          className={cn(
-            "rounded-lg px-6 py-2.5 text-sm font-semibold transition-all",
-            canCalculate && !computing
-              ? "bg-poker-green text-black hover:bg-poker-green/90 shadow-lg shadow-poker-green/20"
-              : "bg-white/[0.06] text-white/30 cursor-not-allowed"
-          )}
-        >
-          {computing ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t("equity.calculating")}
-            </span>
-          ) : (
-            t("equity.calculate")
-          )}
-        </button>
-        <button
           onClick={handleReset}
-          className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/50 hover:bg-white/[0.06] hover:text-white/70 transition-all"
+          className="rounded-xl border border-white/10 px-5 py-3 sm:px-4 sm:py-2.5 text-sm text-white/50 hover:bg-white/[0.06] hover:text-white/70 transition-all duration-200"
         >
           {t("equity.reset")}
         </button>
@@ -183,7 +159,14 @@ export function EquityCalculator() {
       <div className="text-xs text-white/40">{t("equity.presets")}</div>
       <PresetButtons presets={PRESETS} onSelect={handlePreset} />
 
-      {result && (
+      {computing && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-poker-green" />
+          <span className="ml-2 text-sm text-white/50">{t("equity.calculating")}</span>
+        </div>
+      )}
+
+      {result && !computing && (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-5">
           <EquityBar
             hand1Pct={result.hand1WinPct}
@@ -194,20 +177,20 @@ export function EquityCalculator() {
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-xs text-white/40 mb-1">{t("equity.result.yourHand")}</div>
-              <div className="text-2xl font-bold text-green-400">
+              <div className="text-4xl sm:text-2xl font-bold text-green-400">
                 {result.hand1WinPct.toFixed(1)}%
               </div>
               <div className="text-[10px] text-white/30 mt-1">{result.hand1Best}</div>
             </div>
             <div>
               <div className="text-xs text-white/40 mb-1">{t("equity.result.tie")}</div>
-              <div className="text-2xl font-bold text-white/50">
+              <div className="text-4xl sm:text-2xl font-bold text-white/50">
                 {result.tiePct.toFixed(1)}%
               </div>
             </div>
             <div>
               <div className="text-xs text-white/40 mb-1">{t("equity.result.opponent")}</div>
-              <div className="text-2xl font-bold text-red-400">
+              <div className="text-4xl sm:text-2xl font-bold text-red-400">
                 {result.hand2WinPct.toFixed(1)}%
               </div>
               <div className="text-[10px] text-white/30 mt-1">{result.hand2Best}</div>
@@ -226,7 +209,7 @@ export function EquityCalculator() {
           </div>
 
           {presetNote && (
-            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-xs text-white/50 flex items-start gap-2">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-xs text-white/50 flex items-start gap-2">
               <Info className="h-3.5 w-3.5 text-poker-green shrink-0 mt-0.5" />
               <span>{presetNote}</span>
             </div>

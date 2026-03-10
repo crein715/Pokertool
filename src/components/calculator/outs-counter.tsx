@@ -106,7 +106,7 @@ export function OutsCounter() {
         {howToUse ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
       </button>
       {howToUse && (
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 text-xs text-white/50 space-y-2">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-xs text-white/50 space-y-2">
           <p>{t("outs.helpText1")}</p>
           <p>{t("outs.helpText2")}</p>
         </div>
@@ -157,7 +157,7 @@ export function OutsCounter() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-2 px-2">
               <DeckVisual
                 usedCards={allSelected}
                 outs={outsResult.totalOuts}
@@ -165,7 +165,8 @@ export function OutsCounter() {
               />
             </div>
 
-            <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+            {/* Desktop: table layout */}
+            <div className="hidden sm:block rounded-xl border border-white/[0.06] overflow-hidden">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-white/[0.06] text-white/40">
@@ -215,11 +216,60 @@ export function OutsCounter() {
               </table>
             </div>
 
-            <div className="rounded-lg border border-poker-green/20 bg-poker-green/5 p-4 space-y-3">
+            {/* Mobile: stacked card layout */}
+            <div className="sm:hidden space-y-2">
+              {outsResult.draws.map((draw) => (
+                <div
+                  key={draw.name}
+                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: draw.color }}
+                      />
+                      <span className="text-sm text-white/80 font-medium">
+                        {drawNameMap[draw.name] || draw.name}
+                      </span>
+                    </div>
+                    <span className="text-sm font-bold text-poker-green font-mono">
+                      {draw.outs.length} {t("outs.table.outs").toLowerCase()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/40 font-mono">
+                      {draw.outs
+                        .slice(0, 8)
+                        .map((c) => `${c.rank}${suitSymbols[c.suit]}`)
+                        .join(" ")}
+                      {draw.outs.length > 8 && " ..."}
+                    </span>
+                    <span className="text-white/50 font-mono">
+                      {outsToEquityOneCard(draw.outs.length, remaining).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-xl border border-poker-green/20 bg-poker-green/5 p-3 flex items-center justify-between">
+                <span className="text-sm text-white/80 font-semibold">{t("outs.totalNoOverlap")}</span>
+                <div className="text-right">
+                  <span className="text-lg font-bold text-poker-green font-mono">{outsResult.totalOutCount}</span>
+                  <span className="text-xs text-white/40 ml-2 font-mono">
+                    {cardsTocome === 2
+                      ? `${exactTwoCards.toFixed(1)}%`
+                      : `${exactOneCard.toFixed(1)}%`
+                    }
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-poker-green/20 bg-poker-green/5 p-4 space-y-3">
               <div className="text-xs font-semibold text-poker-green uppercase tracking-wider">{t("outs.ruleOf2And4")}</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="space-y-1">
-                  <div className="text-white/50">{t("outs.twoCards")}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1.5 rounded-xl bg-black/20 p-3">
+                  <div className="text-white/50 font-medium">{t("outs.twoCards")}</div>
                   <div className="text-white/70">
                     {t("outs.quick")} <span className="font-mono text-poker-green">{outsResult.totalOutCount} × 4 = ~{quick4}%</span>
                   </div>
@@ -227,8 +277,8 @@ export function OutsCounter() {
                     {t("outs.exact")} <span className="font-mono">{exactTwoCards.toFixed(1)}%</span>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-white/50">{t("outs.oneCard")}</div>
+                <div className="space-y-1.5 rounded-xl bg-black/20 p-3">
+                  <div className="text-white/50 font-medium">{t("outs.oneCard")}</div>
                   <div className="text-white/70">
                     {t("outs.quick")} <span className="font-mono text-poker-green">{outsResult.totalOutCount} × 2 = ~{quick2}%</span>
                   </div>
@@ -240,7 +290,7 @@ export function OutsCounter() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
             <h4 className="text-xs font-semibold text-white/60 uppercase tracking-wider">{t("outs.usingOuts")}</h4>
             <div className="text-xs text-white/40 space-y-2 leading-relaxed">
               <p><strong className="text-white/60">{t("outs.usingOuts1")}</strong> {t("outs.usingOuts1.text")}</p>
