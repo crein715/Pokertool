@@ -12,6 +12,7 @@ const pageTitleKeys: Record<string, string> = {
   "/ranges": "header.ranges",
   "/trainer": "header.trainer",
   "/calculator": "header.calculator",
+  "/tutorial": "header.tutorial",
 };
 
 export function Header() {

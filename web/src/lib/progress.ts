@@ -6,6 +6,7 @@ export interface LearningProgress {
   concepts: boolean;
   ranges: boolean;
   trainer: boolean;
+  tutorial: boolean;
 }
 
 export function loadProgress(): LearningProgress {
@@ -37,5 +38,5 @@ export function getCompletedCount(): number {
 }
 
 function defaultProgress(): LearningProgress {
-  return { handRankings: false, positions: false, concepts: false, ranges: false, trainer: false };
+  return { handRankings: false, positions: false, concepts: false, ranges: false, trainer: false, tutorial: false };
 }
