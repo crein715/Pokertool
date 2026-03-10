@@ -26,6 +26,7 @@ import { ActionButtons } from "@/components/trainer/action-buttons";
 import { QuizResult } from "@/components/trainer/quiz-result";
 import { SessionStatsPanel } from "@/components/trainer/session-stats";
 import { SessionSummary } from "@/components/trainer/session-summary";
+import { HowThisWorks } from "@/components/onboarding/how-this-works";
 import { Target, Play, Brain, Trophy, Flame, ChevronDown, StopCircle } from "lucide-react";
 
 type Phase = "setup" | "playing" | "result" | "summary";
@@ -208,6 +209,17 @@ export default function TrainerPage() {
             {t("trainer.subtitle")}
           </p>
         </div>
+
+        <HowThisWorks
+          titleKey="guide.title"
+          stepsKeys={[
+            "guide.trainer.step1",
+            "guide.trainer.step2",
+            "guide.trainer.step3",
+            "guide.trainer.step4",
+          ]}
+          pageId="trainer"
+        />
 
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
           <div className="space-y-2">

@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider } from "@/lib/i18n";
+import { SpotlightWalkthrough } from "@/components/onboarding/spotlight-walkthrough";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
             <Sidebar />
             <div className="lg:pl-64">
               <Header />
+              <SpotlightWalkthrough />
               <main className="min-h-[calc(100vh-3.5rem)] px-4 py-6 sm:px-6 lg:px-8">{children}</main>
             </div>
           </TooltipProvider>

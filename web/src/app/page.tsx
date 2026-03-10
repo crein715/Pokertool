@@ -14,6 +14,7 @@ import {
   Check,
   Target,
 } from "lucide-react";
+import { PokerTerm } from "@/components/onboarding/poker-term";
 
 const milestones: { key: keyof LearningProgress; icon: typeof CreditCard; href: string }[] = [
   { key: "handRankings", icon: CreditCard, href: "/learn/hand-rankings" },
@@ -81,7 +82,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Progress Tracker */}
-      <div className="space-y-5 animate-[slide-up_0.5s_ease-out_0.15s_both]">
+      <div data-walkthrough="step-3" className="space-y-5 animate-[slide-up_0.5s_ease-out_0.15s_both]">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-white/40">
             {t("dashboard.progress.title")}
@@ -148,7 +149,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="space-y-4 animate-[slide-up_0.5s_ease-out_0.25s_both]">
+      <div data-walkthrough="step-4" className="space-y-4 animate-[slide-up_0.5s_ease-out_0.25s_both]">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-white/40">{t("dashboard.quickActions")}</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {quickActions.map((action, i) => (

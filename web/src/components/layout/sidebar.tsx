@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getCompletedCount } from "@/lib/progress";
+import { HelpButton } from "@/components/onboarding/help-button";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -86,11 +87,12 @@ export function Sidebar() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav data-walkthrough="step-1" className="flex-1 overflow-y-auto px-3 py-4">
           <div className="space-y-0.5">
             <NavItem href="/" icon={Home} label={t("nav.dashboard")} active={isActive("/")} onClick={() => setMobileOpen(false)} />
 
             <button
+              data-walkthrough="step-2"
               onClick={() => setLearnOpen(!learnOpen)}
               className={cn(
                 "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
@@ -124,9 +126,10 @@ export function Sidebar() {
         </nav>
 
         <div className="border-t border-white/[0.06] px-4 py-4 space-y-3">
-          <div className="flex justify-center">
+          <div data-walkthrough="step-5" className="flex justify-center">
             <LanguageSwitcher />
           </div>
+          <HelpButton />
           <div className="rounded-lg bg-white/[0.03] px-3 py-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-white/50">

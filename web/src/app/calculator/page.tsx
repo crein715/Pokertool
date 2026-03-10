@@ -7,6 +7,7 @@ import { OutsCounter } from "@/components/calculator/outs-counter";
 import { Calculator, Scale, Target } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { PageHeader } from "@/components/layout/page-header";
+import { HowThisWorks } from "@/components/onboarding/how-this-works";
 
 export default function CalculatorPage() {
   const { t } = useT();
@@ -17,6 +18,17 @@ export default function CalculatorPage() {
         icon={Calculator}
         title={t("calculator.title")}
         subtitle={t("calculator.subtitle")}
+      />
+
+      <HowThisWorks
+        titleKey="guide.title"
+        stepsKeys={[
+          "guide.calculator.step1",
+          "guide.calculator.step2",
+          "guide.calculator.step3",
+          "guide.calculator.step4",
+        ]}
+        pageId="calculator"
       />
 
       <Tabs defaultValue="pot-odds">
