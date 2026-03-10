@@ -1,23 +1,58 @@
-import { Calculator, Lock } from "lucide-react";
+"use client";
+
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PotOddsCalculator } from "@/components/calculator/pot-odds-calculator";
+import { EquityCalculator } from "@/components/calculator/equity-calculator";
+import { OutsCounter } from "@/components/calculator/outs-counter";
+import { Calculator, Scale, Target } from "lucide-react";
 
 export default function CalculatorPage() {
   return (
-    <div className="mx-auto max-w-2xl flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/[0.04] border border-white/[0.06]">
-        <Calculator className="h-10 w-10 text-white/20" />
-      </div>
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center justify-center gap-2">
-          Equity Calculator
-          <Lock className="h-5 w-5 text-white/20" />
-        </h1>
-        <p className="text-white/40 max-w-md">
-          Calculate hand vs. hand equity, pot odds, and expected value. Coming in Phase 4.
+    <div className="mx-auto max-w-4xl space-y-6 pb-12">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight">Poker Math Calculator</h1>
+        <p className="text-sm text-white/40">
+          Master the math behind every decision — pot odds, equity, and outs.
         </p>
       </div>
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-6 py-4 text-sm text-white/30">
-        Hand vs. Hand &bull; Range vs. Range &bull; Pot odds &bull; EV calculations
-      </div>
+
+      <Tabs defaultValue="pot-odds">
+        <TabsList className="w-full grid grid-cols-3 h-auto p-1 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+          <TabsTrigger
+            value="pot-odds"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-xs sm:text-sm data-active:bg-poker-green/15 data-active:text-poker-green data-active:border-poker-green/30 data-active:shadow-none"
+          >
+            <Calculator className="h-4 w-4 hidden sm:block" />
+            Pot Odds
+          </TabsTrigger>
+          <TabsTrigger
+            value="equity"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-xs sm:text-sm data-active:bg-poker-green/15 data-active:text-poker-green data-active:border-poker-green/30 data-active:shadow-none"
+          >
+            <Scale className="h-4 w-4 hidden sm:block" />
+            Equity
+          </TabsTrigger>
+          <TabsTrigger
+            value="outs"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-xs sm:text-sm data-active:bg-poker-green/15 data-active:text-poker-green data-active:border-poker-green/30 data-active:shadow-none"
+          >
+            <Target className="h-4 w-4 hidden sm:block" />
+            Outs
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pot-odds" className="mt-6">
+          <PotOddsCalculator />
+        </TabsContent>
+
+        <TabsContent value="equity" className="mt-6">
+          <EquityCalculator />
+        </TabsContent>
+
+        <TabsContent value="outs" className="mt-6">
+          <OutsCounter />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

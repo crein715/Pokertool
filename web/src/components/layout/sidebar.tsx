@@ -32,7 +32,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/ranges", label: "Ranges", icon: BarChart3 },
   { href: "/trainer", label: "Trainer", icon: Target },
-  { href: "/calculator", label: "Calculator", icon: Calculator, locked: true },
+  { href: "/calculator", label: "Calculator", icon: Calculator },
 ];
 
 export function Sidebar() {
@@ -102,11 +102,10 @@ export function Sidebar() {
             {navItems.slice(1).map((item) => (
               <NavItem
                 key={item.href}
-                href={item.locked ? "#" : item.href}
+                href={item.href}
                 icon={item.icon}
                 label={item.label}
                 active={isActive(item.href)}
-                locked={item.locked}
                 onClick={() => setMobileOpen(false)}
               />
             ))}
@@ -115,9 +114,9 @@ export function Sidebar() {
 
         <div className="border-t border-white/[0.06] px-4 py-4">
           <div className="rounded-lg bg-white/[0.03] px-3 py-3">
-            <p className="text-xs font-medium text-white/50">Phase 3 — Training</p>
+            <p className="text-xs font-medium text-white/50">Phase 4 — Calculator</p>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-3/5 rounded-full bg-poker-green" />
+              <div className="h-full w-4/5 rounded-full bg-poker-green" />
             </div>
           </div>
         </div>
