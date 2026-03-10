@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import type { Locale } from "./types";
-import { ui as enUi, handRankings as enHR, positions as enPos, concepts as enCon, glossaryTerms as enGloss } from "./en";
-import { ui as ukUi, handRankings as ukHR, positions as ukPos, concepts as ukCon, glossaryTerms as ukGloss } from "./uk";
+import { ui as enUi } from "./en";
+import { ui as ukUi } from "./uk";
 
 const dictionaries: Record<Locale, Record<string, string>> = { en: enUi, uk: ukUi };
 
@@ -45,14 +45,4 @@ export function useT() {
   const dict = dictionaries[locale];
   const t = useCallback((key: string) => dict[key] ?? key, [dict]);
   return { t };
-}
-
-export function useLocalizedData() {
-  const { locale } = useLocale();
-  return useMemo(() => {
-    if (locale === "uk") {
-      return { handRankings: ukHR, positions: ukPos, concepts: ukCon, glossaryTerms: ukGloss };
-    }
-    return { handRankings: enHR, positions: enPos, concepts: enCon, glossaryTerms: enGloss };
-  }, [locale]);
 }

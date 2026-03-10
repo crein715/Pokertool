@@ -8,7 +8,6 @@ import { RangeStats } from "@/components/ranges/range-stats";
 import { RangeLegend } from "@/components/ranges/range-legend";
 import { useT } from "@/lib/i18n";
 import { PageHeader } from "@/components/layout/page-header";
-import { HowThisWorks } from "@/components/onboarding/how-this-works";
 import {
   type Position,
   type Scenario,
@@ -44,17 +43,6 @@ export default function RangesPage() {
         icon={BarChart3}
         title={t("ranges.title")}
         subtitle={t("ranges.subtitle")}
-      />
-
-      <HowThisWorks
-        titleKey="guide.title"
-        stepsKeys={[
-          "guide.ranges.step1",
-          "guide.ranges.step2",
-          "guide.ranges.step3",
-          "guide.ranges.step4",
-        ]}
-        pageId="ranges"
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

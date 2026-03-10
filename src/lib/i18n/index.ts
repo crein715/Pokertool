@@ -1,2 +1,2 @@
 export type { Locale } from "./types";
-export { LocaleProvider, useLocale, useT, useLocalizedData } from "./context";
+export { LocaleProvider, useLocale, useT } from "./context";
