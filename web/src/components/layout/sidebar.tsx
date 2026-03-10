@@ -20,14 +20,21 @@ import {
   Menu,
   X,
   Spade,
+  GraduationCap,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getCompletedCount } from "@/lib/progress";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { t } = useT();
   const [learnOpen, setLearnOpen] = useState(pathname.startsWith("/learn"));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
+
+  useEffect(() => {
+    setCompletedCount(getCompletedCount());
+  }, []);
 
   const learnItems = [
     { href: "/learn/hand-rankings", label: t("nav.handRankings"), icon: CreditCard },
@@ -38,6 +45,7 @@ export function Sidebar() {
 
   const navItems = [
     { href: "/", label: t("nav.dashboard"), icon: Home },
+    { href: "/tutorial", label: t("nav.tutorial"), icon: GraduationCap },
     { href: "/ranges", label: t("nav.ranges"), icon: BarChart3 },
     { href: "/trainer", label: t("nav.trainer"), icon: Target },
     { href: "/calculator", label: t("nav.calculator"), icon: Calculator },
@@ -120,9 +128,13 @@ export function Sidebar() {
             <LanguageSwitcher />
           </div>
           <div className="rounded-lg bg-white/[0.03] px-3 py-3">
-            <p className="text-xs font-medium text-white/50">{t("nav.phase")}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-white/50">
+                {t("nav.progress").replace("{n}", String(completedCount))}
+              </p>
+            </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-4/5 rounded-full bg-poker-green" />
+              <div className="h-full rounded-full bg-poker-green transition-all duration-500" style={{ width: `${(completedCount / 5) * 100}%` }} />
             </div>
           </div>
         </div>

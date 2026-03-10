@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useT, useLocalizedData } from "@/lib/i18n";
-import { Search } from "lucide-react";
+import { Search, BookMarked } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function GlossaryPage() {
   const { t } = useT();
@@ -29,10 +30,13 @@ export default function GlossaryPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("glossary.title")}</h1>
-        <p className="text-white/50">{t("glossary.subtitle").replace("{count}", String(glossaryTerms.length))}</p>
-      </div>
+      <PageHeader
+        icon={BookMarked}
+        iconColor="text-purple-400"
+        title={t("glossary.title")}
+        subtitle={t("glossary.subtitle").replace("{count}", String(glossaryTerms.length))}
+        badge={`${glossaryTerms.length} terms`}
+      />
 
       <div className="relative">
         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
@@ -50,8 +54,8 @@ export default function GlossaryPage() {
       )}
 
       <div className="space-y-6">
-        {grouped.map(([letter, terms]) => (
-          <div key={letter}>
+        {grouped.map(([letter, terms], groupIdx) => (
+          <div key={letter} className="animate-[slide-up_0.4s_ease-out_both]" style={{ animationDelay: `${groupIdx * 0.04}s` }}>
             <div className="sticky top-0 z-10 mb-2 flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-poker-green/10 text-sm font-bold text-poker-green">
                 {letter}
@@ -60,7 +64,7 @@ export default function GlossaryPage() {
             </div>
             <div className="space-y-2">
               {terms.map((term) => (
-                <div key={term.term} className="rounded-lg border border-white/[0.04] bg-white/[0.02] px-4 py-3">
+                <div key={term.term} className="rounded-lg border border-white/[0.04] bg-white/[0.02] px-4 py-3 transition-all duration-200 hover:bg-white/[0.04] hover:border-white/[0.1]">
                   <h3 className="font-semibold text-poker-green">{term.term}</h3>
                   <p className="mt-1 text-sm text-white/50 leading-relaxed">{term.definition}</p>
                 </div>

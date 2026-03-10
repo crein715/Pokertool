@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useT, useLocalizedData } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/page-header";
+import { MapPin } from "lucide-react";
+import { markComplete } from "@/lib/progress";
 
 export default function PositionsPage() {
   const { t } = useT();
   const { positions } = useLocalizedData();
   const [selected, setSelected] = useState<string>("btn");
   const selectedPos = positions.find((p) => p.id === selected)!;
+
+  useEffect(() => {
+    const timer = setTimeout(() => markComplete("positions"), 30000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const zoneLabel = (zone: string) => {
     if (zone === "early") return t("positions.zone.early");
@@ -19,10 +27,11 @@ export default function PositionsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("positions.title")}</h1>
-        <p className="text-white/50">{t("positions.subtitle")}</p>
-      </div>
+      <PageHeader
+        icon={MapPin}
+        title={t("positions.title")}
+        subtitle={t("positions.subtitle")}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr,380px]">
         <div className="relative flex items-center justify-center">
@@ -33,7 +42,7 @@ export default function PositionsPage() {
               </div>
             </div>
 
-            {positions.map((pos) => {
+            {positions.map((pos, index) => {
               const rad = (pos.angle * Math.PI) / 180;
               const rx = 50;
               const ry = 46;
@@ -45,7 +54,7 @@ export default function PositionsPage() {
                   key={pos.id}
                   onClick={() => setSelected(pos.id)}
                   className={cn(
-                    "absolute flex flex-col items-center justify-center w-11 h-11 sm:w-14 sm:h-14 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 text-[10px] sm:text-xs font-bold transition-all",
+                    "absolute flex flex-col items-center justify-center w-11 h-11 sm:w-14 sm:h-14 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 text-[10px] sm:text-xs font-bold transition-all animate-[slide-up_0.3s_ease-out_both]",
                     selected === pos.id
                       ? "bg-poker-green border-poker-green text-black scale-110 shadow-lg shadow-poker-green/30"
                       : pos.zone === "early" || pos.zone === "blind"
@@ -54,7 +63,7 @@ export default function PositionsPage() {
                       ? "bg-neutral-800 border-yellow-600/50 text-white hover:border-poker-green/50 hover:bg-neutral-700"
                       : "bg-neutral-800 border-emerald-600/50 text-white hover:border-poker-green/50 hover:bg-neutral-700"
                   )}
-                  style={{ left: `${cx}%`, top: `${cy}%` }}
+                  style={{ left: `${cx}%`, top: `${cy}%`, animationDelay: `${index * 0.06}s` }}
                 >
                   <span>{pos.name}</span>
                 </button>
@@ -63,7 +72,7 @@ export default function PositionsPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-200 hover:bg-white/[0.04] hover:border-white/[0.1]">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-2xl">{selectedPos.zoneEmoji}</span>
             <div>

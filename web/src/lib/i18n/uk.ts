@@ -13,6 +13,8 @@ export const ui: Record<string, string> = {
   "nav.brand": "PokerTrainer",
   "nav.tagline": "Вчись. Практикуй. Вигравай.",
   "nav.phase": "Фаза 4 — Калькулятор",
+  "nav.tutorial": "Навчання",
+  "nav.progress": "{n} з 5 завершено",
 
   "header.dashboard": "Головна",
   "header.handRankings": "Комбінації рук",
@@ -23,6 +25,19 @@ export const ui: Record<string, string> = {
   "header.trainer": "Тренажер",
   "header.calculator": "Калькулятор",
 
+  "dashboard.hero.welcome": "Ласкаво просимо до PokerTrainer",
+  "dashboard.hero.subtitle": "Ваш шлях від початківця до впевненого гравця починається тут",
+  "dashboard.hero.cta": "Почати навчання",
+  "dashboard.progress.title": "Ваш шлях навчання",
+  "dashboard.progress.complete": "{n}% Завершено",
+  "dashboard.progress.handRankings": "Рейтинг рук",
+  "dashboard.progress.positions": "Позиції",
+  "dashboard.progress.concepts": "Ключові концепції",
+  "dashboard.progress.ranges": "Діапазони",
+  "dashboard.progress.trainer": "Практика",
+  "dashboard.timeEstimate.5min": "~5 хв",
+  "dashboard.timeEstimate.10min": "~10 хв",
+  "dashboard.timeEstimate.15min": "~15 хв",
   "dashboard.subtitle": "Вивчай покер від нуля до професіонала",
   "dashboard.lessonsCompleted": "Пройдено уроків",
   "dashboard.quizAccuracy": "Точність відповідей",
@@ -43,6 +58,7 @@ export const ui: Record<string, string> = {
 
   "handRankings.title": "Покерні комбінації",
   "handRankings.subtitle": "Усі 10 комбінацій від найсильнішої до найслабшої. Дізнайся, що б'є що.",
+  "handRankings.badge": "10 рук",
 
   "positions.title": "Позиції за столом",
   "positions.subtitle": "Натисніть на місце, щоб дізнатися стратегію для кожної позиції.",
@@ -60,6 +76,7 @@ export const ui: Record<string, string> = {
 
   "concepts.title": "Ключові концепції",
   "concepts.subtitle": "Вісім базових концепцій, які має знати кожен гравець у покер.",
+  "concepts.badge": "8 концепцій",
   "concepts.keyTakeaway": "Головний висновок:",
 
   "glossary.title": "Покерний глосарій",

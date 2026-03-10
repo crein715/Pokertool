@@ -7,6 +7,7 @@ import { ScenarioSelector } from "@/components/ranges/scenario-selector";
 import { RangeStats } from "@/components/ranges/range-stats";
 import { RangeLegend } from "@/components/ranges/range-legend";
 import { useT } from "@/lib/i18n";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   type Position,
   type Scenario,
@@ -16,6 +17,7 @@ import {
   RANKS,
 } from "@/lib/ranges";
 import { cn } from "@/lib/utils";
+import { BarChart3 } from "lucide-react";
 
 export default function RangesPage() {
   const { t } = useT();
@@ -37,10 +39,11 @@ export default function RangesPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("ranges.title")}</h1>
-        <p className="text-white/50">{t("ranges.subtitle")}</p>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title={t("ranges.title")}
+        subtitle={t("ranges.subtitle")}
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <ScenarioSelector value={scenario} onChange={setScenario} />
@@ -70,7 +73,7 @@ export default function RangesPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1fr,280px]">
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 sm:p-5">
+          <div className="overflow-x-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 sm:p-5 transition-all duration-200 hover:bg-white/[0.04] hover:border-white/[0.1]">
             <RangeGrid
               scenario={scenario}
               position={position}
@@ -85,7 +88,7 @@ export default function RangesPage() {
           <RangeStats scenario={scenario} position={position} />
 
           {selectedHand && (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-200 hover:bg-white/[0.04] hover:border-white/[0.1]">
               <h3 className="text-lg font-bold text-poker-green">{selectedHand}</h3>
               <p className="text-xs text-white/30 mt-1 mb-3">{t("ranges.actionByPosition")}</p>
               <div className="space-y-1.5">

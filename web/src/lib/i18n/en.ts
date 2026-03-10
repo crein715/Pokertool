@@ -19,6 +19,8 @@ export const ui: Record<string, string> = {
   "nav.brand": "PokerTrainer",
   "nav.tagline": "Learn. Practice. Win.",
   "nav.phase": "Phase 4 — Calculator",
+  "nav.tutorial": "Tutorial",
+  "nav.progress": "{n} of 5 completed",
 
   "header.dashboard": "Dashboard",
   "header.handRankings": "Hand Rankings",
@@ -29,6 +31,19 @@ export const ui: Record<string, string> = {
   "header.trainer": "Trainer",
   "header.calculator": "Calculator",
 
+  "dashboard.hero.welcome": "Welcome to PokerTrainer",
+  "dashboard.hero.subtitle": "Your journey from beginner to confident player starts here",
+  "dashboard.hero.cta": "Start Learning",
+  "dashboard.progress.title": "Your Learning Path",
+  "dashboard.progress.complete": "{n}% Complete",
+  "dashboard.progress.handRankings": "Hand Rankings",
+  "dashboard.progress.positions": "Positions",
+  "dashboard.progress.concepts": "Key Concepts",
+  "dashboard.progress.ranges": "Ranges",
+  "dashboard.progress.trainer": "Practice",
+  "dashboard.timeEstimate.5min": "~5 min",
+  "dashboard.timeEstimate.10min": "~10 min",
+  "dashboard.timeEstimate.15min": "~15 min",
   "dashboard.subtitle": "Learn poker from zero to hero",
   "dashboard.lessonsCompleted": "Lessons Completed",
   "dashboard.quizAccuracy": "Quiz Accuracy",
@@ -49,6 +64,7 @@ export const ui: Record<string, string> = {
 
   "handRankings.title": "Poker Hand Rankings",
   "handRankings.subtitle": "All 10 hands from strongest to weakest. Learn what beats what.",
+  "handRankings.badge": "10 hands",
 
   "positions.title": "Table Positions",
   "positions.subtitle": "Click a seat to learn about each position's strategy.",
@@ -66,6 +82,7 @@ export const ui: Record<string, string> = {
 
   "concepts.title": "Key Concepts",
   "concepts.subtitle": "Eight foundational concepts every poker player needs to know.",
+  "concepts.badge": "8 concepts",
   "concepts.keyTakeaway": "Key takeaway:",
 
   "glossary.title": "Poker Glossary",
