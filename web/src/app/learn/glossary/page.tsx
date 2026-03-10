@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { glossaryTerms } from "@/lib/poker-data";
+import { useT, useLocalizedData } from "@/lib/i18n";
 import { Search } from "lucide-react";
 
 export default function GlossaryPage() {
+  const { t } = useT();
+  const { glossaryTerms } = useLocalizedData();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -13,7 +15,7 @@ export default function GlossaryPage() {
     return glossaryTerms.filter(
       (t) => t.term.toLowerCase().includes(q) || t.definition.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, glossaryTerms]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof filtered> = {};
@@ -28,15 +30,15 @@ export default function GlossaryPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Poker Glossary</h1>
-        <p className="text-white/50">{glossaryTerms.length}+ poker terms and definitions.</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("glossary.title")}</h1>
+        <p className="text-white/50">{t("glossary.subtitle").replace("{count}", String(glossaryTerms.length))}</p>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
         <input
           type="text"
-          placeholder="Search terms..."
+          placeholder={t("glossary.search")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-xl border border-white/[0.06] bg-white/[0.02] py-3 pl-10 pr-4 text-sm placeholder:text-white/30 focus:border-poker-green/30 focus:outline-none focus:ring-1 focus:ring-poker-green/30"
@@ -44,7 +46,7 @@ export default function GlossaryPage() {
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-center text-white/30 py-8">No terms match &quot;{search}&quot;</p>
+        <p className="text-center text-white/30 py-8">{t("glossary.noMatch").replace("{query}", search)}</p>
       )}
 
       <div className="space-y-6">

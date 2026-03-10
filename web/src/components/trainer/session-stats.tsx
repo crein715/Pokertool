@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { positionLabels, type Action } from "@/lib/ranges";
 import { formatAction } from "@/lib/trainer";
+import { useLocale, useT } from "@/lib/i18n";
 import { Flame, Target, TrendingUp, BarChart3 } from "lucide-react";
 
 interface SessionStatsPanelProps {
@@ -22,6 +23,8 @@ export function SessionStatsPanel({
   byPosition,
   byAction,
 }: SessionStatsPanelProps) {
+  const { locale } = useLocale();
+  const { t } = useT();
   const accuracy = hands > 0 ? Math.round((correct / hands) * 100) : 0;
   const isHot = streak >= 5;
   const isBlazing = streak >= 10;
@@ -31,7 +34,7 @@ export function SessionStatsPanel({
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-4">
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-poker-green" />
-          <h3 className="text-sm font-semibold">Session Stats</h3>
+          <h3 className="text-sm font-semibold">{t("session.stats")}</h3>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -50,7 +53,7 @@ export function SessionStatsPanel({
               )}
               {streak}
             </div>
-            <p className="text-[10px] text-white/40 mt-0.5">Current Streak</p>
+            <p className="text-[10px] text-white/40 mt-0.5">{t("session.currentStreak")}</p>
           </div>
           <div className="rounded-lg bg-white/[0.03] p-3 text-center">
             <div className={cn(
@@ -59,13 +62,13 @@ export function SessionStatsPanel({
             )}>
               {accuracy}%
             </div>
-            <p className="text-[10px] text-white/40 mt-0.5">Accuracy</p>
+            <p className="text-[10px] text-white/40 mt-0.5">{t("session.accuracy")}</p>
           </div>
         </div>
 
         <div className="flex items-center justify-between text-xs text-white/50">
-          <span>{correct}/{hands} correct</span>
-          <span>Best: {bestStreak} 🔥</span>
+          <span>{correct}/{hands} {t("session.correct")}</span>
+          <span>{t("session.best")} {bestStreak} 🔥</span>
         </div>
       </div>
 
@@ -73,7 +76,7 @@ export function SessionStatsPanel({
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-blue-400" />
-            <h3 className="text-sm font-semibold">By Position</h3>
+            <h3 className="text-sm font-semibold">{t("session.byPosition")}</h3>
           </div>
           <div className="space-y-2">
             {Object.entries(byPosition)
@@ -109,7 +112,7 @@ export function SessionStatsPanel({
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-purple-400" />
-            <h3 className="text-sm font-semibold">By Action</h3>
+            <h3 className="text-sm font-semibold">{t("session.byAction")}</h3>
           </div>
           <div className="space-y-1.5">
             {Object.entries(byAction).map(([act, data]) => {
@@ -117,7 +120,7 @@ export function SessionStatsPanel({
               return (
                 <div key={act} className="flex items-center justify-between text-xs">
                   <span className="text-white/60 font-medium">
-                    {formatAction(act as Action)}
+                    {formatAction(act as Action, locale)}
                   </span>
                   <span className={cn(
                     "tabular-nums font-medium",

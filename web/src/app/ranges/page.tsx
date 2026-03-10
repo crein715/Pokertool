@@ -6,18 +6,19 @@ import { PositionSelector } from "@/components/ranges/position-selector";
 import { ScenarioSelector } from "@/components/ranges/scenario-selector";
 import { RangeStats } from "@/components/ranges/range-stats";
 import { RangeLegend } from "@/components/ranges/range-legend";
+import { useT } from "@/lib/i18n";
 import {
   type Position,
   type Scenario,
   positionLabels,
   getHandLabel,
   getAction,
-  actionLabels,
   RANKS,
 } from "@/lib/ranges";
 import { cn } from "@/lib/utils";
 
 export default function RangesPage() {
+  const { t } = useT();
   const [position, setPosition] = useState<Position>("utg");
   const [scenario, setScenario] = useState<Scenario>("rfi");
   const [selectedHand, setSelectedHand] = useState<string | null>(null);
@@ -26,11 +27,19 @@ export default function RangesPage() {
 
   const allPositions: Position[] = ["utg", "mp", "co", "btn", "sb", "bb"];
 
+  const actionLabelMap: Record<string, string> = {
+    raise: t("ranges.actionLabels.raise"),
+    call: t("ranges.actionLabels.call"),
+    fold: t("ranges.actionLabels.fold"),
+    "3bet": t("ranges.actionLabels.3bet"),
+    "4bet": t("ranges.actionLabels.4bet"),
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Preflop Range Charts</h1>
-        <p className="text-white/50">Visual guide to which hands to play from each position.</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("ranges.title")}</h1>
+        <p className="text-white/50">{t("ranges.subtitle")}</p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -42,18 +51,18 @@ export default function RangesPage() {
             onChange={(e) => setComparing(e.target.checked)}
             className="rounded border-white/20 bg-white/5 accent-poker-green"
           />
-          Compare Positions
+          {t("ranges.compare")}
         </label>
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
         <div>
-          <span className="text-xs text-white/30 mb-1 block">{comparing ? "Position 1" : "Position"}</span>
+          <span className="text-xs text-white/30 mb-1 block">{comparing ? t("ranges.position1") : t("ranges.position")}</span>
           <PositionSelector value={position} onChange={setPosition} />
         </div>
         {comparing && (
           <div>
-            <span className="text-xs text-white/30 mb-1 block">Position 2</span>
+            <span className="text-xs text-white/30 mb-1 block">{t("ranges.position2")}</span>
             <PositionSelector value={comparePos} onChange={setComparePos} />
           </div>
         )}
@@ -78,7 +87,7 @@ export default function RangesPage() {
           {selectedHand && (
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
               <h3 className="text-lg font-bold text-poker-green">{selectedHand}</h3>
-              <p className="text-xs text-white/30 mt-1 mb-3">Action by position ({scenario === "rfi" ? "RFI" : scenario === "vs_raise" ? "vs Raise" : "vs 3-Bet"})</p>
+              <p className="text-xs text-white/30 mt-1 mb-3">{t("ranges.actionByPosition")}</p>
               <div className="space-y-1.5">
                 {allPositions.map((p) => {
                   const action = getAction(scenario, p, selectedHand);
@@ -95,7 +104,7 @@ export default function RangesPage() {
                           action === "fold" && "bg-white/5 text-white/30"
                         )}
                       >
-                        {actionLabels[action]}
+                        {actionLabelMap[action]}
                       </span>
                     </div>
                   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n";
 import { type Action } from "@/lib/ranges";
 import { formatAction } from "@/lib/trainer";
 
@@ -44,6 +45,8 @@ const actionConfig: Record<Action, { bg: string; hover: string; ring: string; ke
 };
 
 export function ActionButtons({ actions, onAction, disabled }: ActionButtonsProps) {
+  const { locale } = useLocale();
+
   return (
     <div className="flex flex-wrap items-center justify-center gap-3">
       {actions.map((action) => {
@@ -63,7 +66,7 @@ export function ActionButtons({ actions, onAction, disabled }: ActionButtonsProp
               !disabled && "hover:scale-[1.03] hover:shadow-xl active:scale-[0.97]"
             )}
           >
-            {formatAction(action)}
+            {formatAction(action, locale)}
             <kbd className="ml-1 rounded bg-black/20 px-1.5 py-0.5 text-[10px] font-mono font-medium text-white/60">
               {cfg.key}
             </kbd>

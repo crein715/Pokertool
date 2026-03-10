@@ -1,18 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { positions } from "@/lib/poker-data";
+import { useT, useLocalizedData } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export default function PositionsPage() {
+  const { t } = useT();
+  const { positions } = useLocalizedData();
   const [selected, setSelected] = useState<string>("btn");
   const selectedPos = positions.find((p) => p.id === selected)!;
+
+  const zoneLabel = (zone: string) => {
+    if (zone === "early") return t("positions.zone.early");
+    if (zone === "middle") return t("positions.zone.middle");
+    if (zone === "late") return t("positions.zone.late");
+    return t("positions.zone.blind");
+  };
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Table Positions</h1>
-        <p className="text-white/50">Click a seat to learn about each position&apos;s strategy.</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("positions.title")}</h1>
+        <p className="text-white/50">{t("positions.subtitle")}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr,380px]">
@@ -65,7 +74,7 @@ export default function PositionsPage() {
 
           <div className="space-y-4">
             <div>
-              <span className="text-xs font-medium uppercase tracking-wider text-white/30">Zone</span>
+              <span className="text-xs font-medium uppercase tracking-wider text-white/30">{t("positions.zone")}</span>
               <div className="mt-1 flex items-center gap-2">
                 <span
                   className={cn(
@@ -76,29 +85,23 @@ export default function PositionsPage() {
                     selectedPos.zone === "blind" && "bg-red-500/20 text-red-400"
                   )}
                 >
-                  {selectedPos.zone === "early"
-                    ? "Early Position — Tight"
-                    : selectedPos.zone === "middle"
-                    ? "Middle Position"
-                    : selectedPos.zone === "late"
-                    ? "Late Position — Wide"
-                    : "Blind — Forced Bet"}
+                  {zoneLabel(selectedPos.zone)}
                 </span>
               </div>
             </div>
 
             <div>
-              <span className="text-xs font-medium uppercase tracking-wider text-white/30">Hands to Play</span>
+              <span className="text-xs font-medium uppercase tracking-wider text-white/30">{t("positions.handsToPlay")}</span>
               <p className="mt-1 text-2xl font-bold text-poker-green">{selectedPos.handsPercent}</p>
             </div>
 
             <div>
-              <span className="text-xs font-medium uppercase tracking-wider text-white/30">Overview</span>
+              <span className="text-xs font-medium uppercase tracking-wider text-white/30">{t("positions.overview")}</span>
               <p className="mt-1 text-sm text-white/60 leading-relaxed">{selectedPos.description}</p>
             </div>
 
             <div>
-              <span className="text-xs font-medium uppercase tracking-wider text-white/30">Strategy</span>
+              <span className="text-xs font-medium uppercase tracking-wider text-white/30">{t("positions.strategy")}</span>
               <p className="mt-1 text-sm text-white/60 leading-relaxed">{selectedPos.strategy}</p>
             </div>
           </div>
@@ -107,13 +110,13 @@ export default function PositionsPage() {
 
       <div className="flex flex-wrap gap-3 text-xs text-white/40">
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-red-500/40 border border-red-500/40" /> Early — Play tight (~12-14%)
+          <span className="h-3 w-3 rounded-full bg-red-500/40 border border-red-500/40" /> {t("positions.legend.early")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-yellow-500/40 border border-yellow-500/40" /> Middle — Opening up (~18-22%)
+          <span className="h-3 w-3 rounded-full bg-yellow-500/40 border border-yellow-500/40" /> {t("positions.legend.middle")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-emerald-500/40 border border-emerald-500/40" /> Late — Play wide (~27-40%)
+          <span className="h-3 w-3 rounded-full bg-emerald-500/40 border border-emerald-500/40" /> {t("positions.legend.late")}
         </span>
       </div>
     </div>

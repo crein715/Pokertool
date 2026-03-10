@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { type Action } from "@/lib/ranges";
 import type { QuizHand } from "@/lib/trainer";
 import { formatAction } from "@/lib/trainer";
+import { useLocale, useT } from "@/lib/i18n";
 import { MiniRangeGrid } from "./mini-range-grid";
 import { Check, X } from "lucide-react";
 
@@ -16,6 +17,8 @@ interface QuizResultProps {
 }
 
 export function QuizResult({ hand, selectedAction, isCorrect, onNext }: QuizResultProps) {
+  const { locale } = useLocale();
+  const { t } = useT();
   const [countdown, setCountdown] = useState(4);
 
   const stableNext = useCallback(() => {
@@ -59,22 +62,23 @@ export function QuizResult({ hand, selectedAction, isCorrect, onNext }: QuizResu
             "text-lg font-bold",
             isCorrect ? "text-emerald-400" : "text-red-400"
           )}>
-            {isCorrect ? "CORRECT!" : "INCORRECT"}
+            {isCorrect ? t("quiz.correct") : t("quiz.incorrect")}
           </p>
           <p className="text-sm text-white/50">
-            The correct play is{" "}
-            <strong className="text-white/80">{formatAction(hand.correctAction)}</strong>
-            {" "}from {hand.position.toUpperCase()} with {hand.handNotation}
+            {t("quiz.correctPlay")
+              .replace("{action}", formatAction(hand.correctAction, locale))
+              .replace("{position}", hand.position.toUpperCase())
+              .replace("{hand}", hand.handNotation)}
           </p>
         </div>
       </div>
 
       {!isCorrect && (
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-white/40">Your pick:</span>
+          <span className="text-white/40">{t("quiz.yourPick")}</span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/10 text-red-400 font-medium">
             <X className="w-3 h-3" />
-            {formatAction(selectedAction)}
+            {formatAction(selectedAction, locale)}
           </span>
         </div>
       )}
@@ -83,7 +87,7 @@ export function QuizResult({ hand, selectedAction, isCorrect, onNext }: QuizResu
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="shrink-0">
-          <p className="text-xs text-white/30 mb-1.5 uppercase tracking-wider font-medium">Range Context</p>
+          <p className="text-xs text-white/30 mb-1.5 uppercase tracking-wider font-medium">{t("quiz.rangeContext")}</p>
           <MiniRangeGrid
             scenario={hand.scenario}
             position={hand.position}
@@ -95,7 +99,7 @@ export function QuizResult({ hand, selectedAction, isCorrect, onNext }: QuizResu
             onClick={onNext}
             className="w-full rounded-lg bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-white/80 hover:bg-white/[0.12] hover:text-white transition-all"
           >
-            Next Hand
+            {t("quiz.nextHand")}
             <kbd className="ml-2 rounded bg-black/20 px-1.5 py-0.5 text-[10px] font-mono text-white/40">
               Space
             </kbd>
@@ -107,7 +111,7 @@ export function QuizResult({ hand, selectedAction, isCorrect, onNext }: QuizResu
             />
           </div>
           <p className="text-[10px] text-white/30 text-center">
-            Auto-advancing in {countdown}s
+            {t("quiz.autoAdvance").replace("{n}", String(countdown))}
           </p>
         </div>
       </div>

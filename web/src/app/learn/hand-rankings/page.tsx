@@ -1,12 +1,17 @@
-import { handRankings } from "@/lib/poker-data";
+"use client";
+
+import { useT, useLocalizedData } from "@/lib/i18n";
 import { CardHand } from "@/components/cards/playing-card";
 
 export default function HandRankingsPage() {
+  const { t } = useT();
+  const { handRankings } = useLocalizedData();
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Poker Hand Rankings</h1>
-        <p className="text-white/50">All 10 hands from strongest to weakest. Learn what beats what.</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("handRankings.title")}</h1>
+        <p className="text-white/50">{t("handRankings.subtitle")}</p>
       </div>
 
       <div className="space-y-4">

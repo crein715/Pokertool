@@ -1,6 +1,7 @@
 "use client";
 
 import { getRangeStats, positionLabels, type Scenario, type Position } from "@/lib/ranges";
+import { useT } from "@/lib/i18n";
 
 interface RangeStatsProps {
   scenario: Scenario;
@@ -8,22 +9,23 @@ interface RangeStatsProps {
 }
 
 export function RangeStats({ scenario, position }: RangeStatsProps) {
+  const { t } = useT();
   const stats = getRangeStats(scenario, position);
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
-      <h3 className="mb-4 text-sm font-semibold text-white/40 uppercase tracking-wider">Range Stats</h3>
+      <h3 className="mb-4 text-sm font-semibold text-white/40 uppercase tracking-wider">{t("ranges.stats.title")}</h3>
       <div className="space-y-4">
         <div>
-          <p className="text-sm text-white/50">Position</p>
+          <p className="text-sm text-white/50">{t("ranges.stats.position")}</p>
           <p className="text-xl font-bold text-poker-green">{positionLabels[position]}</p>
         </div>
         <div>
-          <p className="text-sm text-white/50">Hands in range</p>
+          <p className="text-sm text-white/50">{t("ranges.stats.handsInRange")}</p>
           <p className="text-xl font-bold">{stats.count} <span className="text-sm font-normal text-white/30">/ {stats.total}</span></p>
         </div>
         <div>
-          <p className="text-sm text-white/50">Range %</p>
+          <p className="text-sm text-white/50">{t("ranges.stats.rangePercent")}</p>
           <p className="text-xl font-bold">{stats.percent}%</p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
             <div

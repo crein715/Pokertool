@@ -3,25 +3,13 @@
 import { useState, useMemo } from "react";
 import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { calculatePotOdds, calculateExpectedValueEdge, isProfitableCall } from "@/lib/poker-math";
 import { PotOddsGauge } from "./pot-odds-gauge";
 import { PresetButtons } from "./preset-buttons";
 
-interface PotOddsPreset {
-  label: string;
-  description: string;
-  pot: number;
-  call: number;
-}
-
-const PRESETS: PotOddsPreset[] = [
-  { label: "Half pot bet", description: "needs 33%", pot: 1000, call: 500 },
-  { label: "3/4 pot bet", description: "needs 43%", pot: 1000, call: 750 },
-  { label: "Full pot bet", description: "needs 50%", pot: 1000, call: 1000 },
-  { label: "Overbet 2x pot", description: "needs 67%", pot: 1000, call: 2000 },
-];
-
 export function PotOddsCalculator() {
+  const { t } = useT();
   const [pot, setPot] = useState<string>("500");
   const [call, setCall] = useState<string>("150");
   const [equity, setEquity] = useState<number>(50);
@@ -35,6 +23,13 @@ export function PotOddsCalculator() {
   const profitable = useMemo(() => isProfitableCall(equity, potOdds), [equity, potOdds]);
   const valid = potNum > 0 && callNum > 0;
 
+  const PRESETS = [
+    { label: t("potOdds.preset.halfPot"), description: t("potOdds.preset.halfPot.desc"), pot: 1000, call: 500 },
+    { label: t("potOdds.preset.threequarterPot"), description: t("potOdds.preset.threequarterPot.desc"), pot: 1000, call: 750 },
+    { label: t("potOdds.preset.fullPot"), description: t("potOdds.preset.fullPot.desc"), pot: 1000, call: 1000 },
+    { label: t("potOdds.preset.overbet"), description: t("potOdds.preset.overbet.desc"), pot: 1000, call: 2000 },
+  ];
+
   return (
     <div className="space-y-6">
       <button
@@ -42,19 +37,19 @@ export function PotOddsCalculator() {
         className="flex items-center gap-2 text-xs text-white/40 hover:text-white/60 transition-colors"
       >
         <Info className="h-3.5 w-3.5" />
-        <span>How to use</span>
+        <span>{t("potOdds.howToUse")}</span>
         {howToUse ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
       </button>
       {howToUse && (
         <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 text-xs text-white/50 space-y-2">
-          <p>Enter the current pot size and the amount you need to call. Adjust the equity slider to match your estimated hand strength.</p>
-          <p>The calculator instantly shows whether calling is profitable in the long run.</p>
+          <p>{t("potOdds.helpText1")}</p>
+          <p>{t("potOdds.helpText2")}</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs text-white/50 font-medium">Pot size</label>
+          <label className="text-xs text-white/50 font-medium">{t("potOdds.potSize")}</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">$</span>
             <input
@@ -67,7 +62,7 @@ export function PotOddsCalculator() {
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs text-white/50 font-medium">Bet to call</label>
+          <label className="text-xs text-white/50 font-medium">{t("potOdds.betToCall")}</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">$</span>
             <input
@@ -81,7 +76,7 @@ export function PotOddsCalculator() {
         </div>
         <div className="space-y-1.5">
           <label className="text-xs text-white/50 font-medium">
-            Your estimated equity: <span className="text-white/80">{equity}%</span>
+            {t("potOdds.yourEquity").replace("{n}%", "")}<span className="text-white/80">{equity}%</span>
           </label>
           <input
             type="range"
@@ -95,7 +90,7 @@ export function PotOddsCalculator() {
       </div>
 
       <div className="text-xs text-white/40">
-        Quick presets
+        {t("potOdds.quickPresets")}
       </div>
       <PresetButtons
         presets={PRESETS}
@@ -110,24 +105,24 @@ export function PotOddsCalculator() {
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <ResultBox
-                label="Pot Odds"
+                label={t("potOdds.result.potOdds")}
                 value={`${potOdds.toFixed(1)}%`}
                 detail={`${callNum} / ${potNum + callNum}`}
               />
               <ResultBox
-                label="You Need"
+                label={t("potOdds.result.youNeed")}
                 value={`${potOdds.toFixed(1)}%`}
-                detail="equity to break even"
+                detail={t("potOdds.result.equityBreakEven")}
               />
               <ResultBox
-                label="Your Equity"
+                label={t("potOdds.result.yourEquity")}
                 value={`${equity}%`}
-                detail="estimated"
+                detail={t("potOdds.result.estimated")}
               />
               <ResultBox
-                label="EV Edge"
+                label={t("potOdds.result.evEdge")}
                 value={`${edge > 0 ? "+" : ""}${edge.toFixed(1)}%`}
-                detail={edge > 0 ? "edge" : "shortfall"}
+                detail={edge > 0 ? t("potOdds.result.edge") : t("potOdds.result.shortfall")}
                 positive={edge > 0}
               />
             </div>
@@ -143,17 +138,31 @@ export function PotOddsCalculator() {
               )}
             >
               <span className="text-2xl">{profitable ? "✅" : "❌"}</span>
-              <span>{profitable ? "PROFITABLE CALL (+EV)" : "UNPROFITABLE CALL (-EV)"}</span>
+              <span>{profitable ? t("potOdds.profitable") : t("potOdds.unprofitable")}</span>
             </div>
           </div>
 
           <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
-            <h4 className="text-xs font-semibold text-white/60 uppercase tracking-wider">How Pot Odds Work</h4>
+            <h4 className="text-xs font-semibold text-white/60 uppercase tracking-wider">{t("potOdds.howItWorks")}</h4>
             <div className="text-xs text-white/40 space-y-2 leading-relaxed">
-              <p>Pot odds tell you the minimum equity (chance of winning) you need to make a profitable call.</p>
-              <p><span className="text-white/60 font-mono">Formula:</span> Bet to Call ÷ (Current Pot + Bet to Call) = Minimum Equity Needed</p>
-              <p>If your equity is <span className="text-green-400">HIGHER</span> than pot odds → Call is profitable long-term</p>
-              <p>If your equity is <span className="text-red-400">LOWER</span> than pot odds → Fold saves money long-term</p>
+              <p>{t("potOdds.explanation1")}</p>
+              <p><span className="text-white/60 font-mono">{t("potOdds.explanation2.label")}</span> {t("potOdds.explanation2")}</p>
+              <p>
+                {(() => {
+                  const txt = t("potOdds.explanation3");
+                  const higher = t("potOdds.explanation3.higher");
+                  const parts = txt.split("{higher}");
+                  return <>{parts[0]}<span className="text-green-400">{higher}</span>{parts[1]}</>;
+                })()}
+              </p>
+              <p>
+                {(() => {
+                  const txt = t("potOdds.explanation4");
+                  const lower = t("potOdds.explanation4.lower");
+                  const parts = txt.split("{lower}");
+                  return <>{parts[0]}<span className="text-red-400">{lower}</span>{parts[1]}</>;
+                })()}
+              </p>
             </div>
           </div>
         </>

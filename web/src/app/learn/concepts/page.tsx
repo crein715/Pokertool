@@ -1,6 +1,6 @@
 "use client";
 
-import { concepts } from "@/lib/poker-data";
+import { useT, useLocalizedData } from "@/lib/i18n";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Hand,
@@ -25,11 +25,14 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export default function ConceptsPage() {
+  const { t } = useT();
+  const { concepts } = useLocalizedData();
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Key Concepts</h1>
-        <p className="text-white/50">Eight foundational concepts every poker player needs to know.</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("concepts.title")}</h1>
+        <p className="text-white/50">{t("concepts.subtitle")}</p>
       </div>
 
       <Accordion className="space-y-3">
@@ -64,7 +67,7 @@ export default function ConceptsPage() {
                   ))}
                   <div className="mt-4 rounded-lg border border-poker-green/20 bg-poker-green/5 p-4">
                     <p className="text-sm font-medium">
-                      <span className="text-poker-green">Key takeaway:</span>{" "}
+                      <span className="text-poker-green">{t("concepts.keyTakeaway")}</span>{" "}
                       <span className="text-white/70">{concept.takeaway}</span>
                     </p>
                   </div>

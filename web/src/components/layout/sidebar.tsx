@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
+import { LanguageSwitcher } from "./language-switcher";
 import {
   Home,
   BookOpen,
@@ -21,24 +23,25 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-const learnItems = [
-  { href: "/learn/hand-rankings", label: "Hand Rankings", icon: CreditCard },
-  { href: "/learn/positions", label: "Positions", icon: MapPin },
-  { href: "/learn/concepts", label: "Key Concepts", icon: Lightbulb },
-  { href: "/learn/glossary", label: "Glossary", icon: BookMarked },
-];
-
-const navItems = [
-  { href: "/", label: "Dashboard", icon: Home },
-  { href: "/ranges", label: "Ranges", icon: BarChart3 },
-  { href: "/trainer", label: "Trainer", icon: Target },
-  { href: "/calculator", label: "Calculator", icon: Calculator },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
+  const { t } = useT();
   const [learnOpen, setLearnOpen] = useState(pathname.startsWith("/learn"));
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const learnItems = [
+    { href: "/learn/hand-rankings", label: t("nav.handRankings"), icon: CreditCard },
+    { href: "/learn/positions", label: t("nav.positions"), icon: MapPin },
+    { href: "/learn/concepts", label: t("nav.keyConcepts"), icon: Lightbulb },
+    { href: "/learn/glossary", label: t("nav.glossary"), icon: BookMarked },
+  ];
+
+  const navItems = [
+    { href: "/", label: t("nav.dashboard"), icon: Home },
+    { href: "/ranges", label: t("nav.ranges"), icon: BarChart3 },
+    { href: "/trainer", label: t("nav.trainer"), icon: Target },
+    { href: "/calculator", label: t("nav.calculator"), icon: Calculator },
+  ];
 
   const isActive = (href: string) => pathname === href;
   const isLearnActive = pathname.startsWith("/learn");
@@ -67,8 +70,8 @@ export function Sidebar() {
             <Spade className="h-5 w-5 text-poker-green" />
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight">PokerTrainer</h1>
-            <p className="text-[11px] text-white/40">Learn. Practice. Win.</p>
+            <h1 className="text-base font-bold tracking-tight">{t("nav.brand")}</h1>
+            <p className="text-[11px] text-white/40">{t("nav.tagline")}</p>
           </div>
           <button onClick={() => setMobileOpen(false)} className="ml-auto lg:hidden">
             <X className="h-5 w-5 text-white/40" />
@@ -77,7 +80,7 @@ export function Sidebar() {
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <div className="space-y-0.5">
-            <NavItem href="/" icon={Home} label="Dashboard" active={isActive("/")} onClick={() => setMobileOpen(false)} />
+            <NavItem href="/" icon={Home} label={t("nav.dashboard")} active={isActive("/")} onClick={() => setMobileOpen(false)} />
 
             <button
               onClick={() => setLearnOpen(!learnOpen)}
@@ -87,7 +90,7 @@ export function Sidebar() {
               )}
             >
               <BookOpen className="h-4 w-4 shrink-0" />
-              <span className="font-medium">Learn</span>
+              <span className="font-medium">{t("nav.learn")}</span>
               <ChevronDown className={cn("ml-auto h-3.5 w-3.5 transition-transform", learnOpen && "rotate-180")} />
             </button>
 
@@ -112,9 +115,12 @@ export function Sidebar() {
           </div>
         </nav>
 
-        <div className="border-t border-white/[0.06] px-4 py-4">
+        <div className="border-t border-white/[0.06] px-4 py-4 space-y-3">
+          <div className="flex justify-center">
+            <LanguageSwitcher />
+          </div>
           <div className="rounded-lg bg-white/[0.03] px-3 py-3">
-            <p className="text-xs font-medium text-white/50">Phase 4 — Calculator</p>
+            <p className="text-xs font-medium text-white/50">{t("nav.phase")}</p>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
               <div className="h-full w-4/5 rounded-full bg-poker-green" />
             </div>

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LocaleProvider } from "@/lib/i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,13 +29,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0a] text-white`}>
-        <TooltipProvider>
-          <Sidebar />
-          <div className="lg:pl-64">
-            <Header />
-            <main className="min-h-[calc(100vh-3.5rem)] px-4 py-6 sm:px-6 lg:px-8">{children}</main>
-          </div>
-        </TooltipProvider>
+        <LocaleProvider>
+          <TooltipProvider>
+            <Sidebar />
+            <div className="lg:pl-64">
+              <Header />
+              <main className="min-h-[calc(100vh-3.5rem)] px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+            </div>
+          </TooltipProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

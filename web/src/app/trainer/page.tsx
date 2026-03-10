@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { useLocale, useT } from "@/lib/i18n";
 import {
   generateQuizHand,
   getAvailableActions,
   formatAction,
   ALL_POSITIONS,
-  positionFullNames,
+  getPositionFullName,
   type Difficulty,
   type QuizHand,
 } from "@/lib/trainer";
@@ -52,6 +53,8 @@ function emptySession(): SessionData {
 }
 
 export default function TrainerPage() {
+  const { locale } = useLocale();
+  const { t } = useT();
   const [phase, setPhase] = useState<Phase>("setup");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [positionFilter, setPositionFilter] = useState<Position | "all">("all");
@@ -78,13 +81,13 @@ export default function TrainerPage() {
 
   const dealHand = useCallback(() => {
     const pos = positionFilter === "all" ? undefined : positionFilter;
-    const hand = generateQuizHand(difficulty, pos);
+    const hand = generateQuizHand(difficulty, pos, locale);
     setCurrentHand(hand);
     setSelectedAction(null);
     setIsCorrect(null);
     setPhase("playing");
     setHandKey((k) => k + 1);
-  }, [difficulty, positionFilter]);
+  }, [difficulty, positionFilter, locale]);
 
   const handleStart = useCallback(() => {
     setSession(emptySession());
@@ -199,32 +202,32 @@ export default function TrainerPage() {
             <Target className="w-8 h-8 text-poker-green" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Preflop <span className="text-poker-green">Trainer</span>
+            {t("trainer.title").split(" ")[0]} <span className="text-poker-green">{t("trainer.title").split(" ").slice(1).join(" ")}</span>
           </h1>
           <p className="text-white/40 max-w-md mx-auto">
-            Drill preflop decisions until ranges become instinctive. Pick your settings and start training.
+            {t("trainer.subtitle")}
           </p>
         </div>
 
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-white/40">Difficulty</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-white/40">{t("trainer.difficulty")}</label>
             <DifficultySelector difficulty={difficulty} onChange={setDifficulty} />
             <DifficultyDescription difficulty={difficulty} />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-white/40">Position</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-white/40">{t("trainer.position")}</label>
             <div className="relative">
               <select
                 value={positionFilter}
                 onChange={(e) => setPositionFilter(e.target.value as Position | "all")}
                 className="w-full appearance-none rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 focus:border-poker-green/50 focus:outline-none focus:ring-1 focus:ring-poker-green/30"
               >
-                <option value="all">All Positions</option>
+                <option value="all">{t("trainer.allPositions")}</option>
                 {ALL_POSITIONS.map((pos) => (
                   <option key={pos} value={pos}>
-                    {positionLabels[pos]} — {positionFullNames[pos]}
+                    {positionLabels[pos]} — {getPositionFullName(pos, locale)}
                   </option>
                 ))}
               </select>
@@ -237,12 +240,12 @@ export default function TrainerPage() {
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
             <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
               <Trophy className="w-4 h-4 text-yellow-400" />
-              All-Time Stats
+              {t("trainer.allTimeStats")}
             </h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-xl font-bold tabular-nums">{stats.totalHands}</div>
-                <p className="text-[10px] text-white/40">Hands</p>
+                <p className="text-[10px] text-white/40">{t("trainer.hands")}</p>
               </div>
               <div className="text-center">
                 <div className={cn(
@@ -257,13 +260,13 @@ export default function TrainerPage() {
                     ? `${Math.round((stats.totalCorrect / stats.totalHands) * 100)}%`
                     : "—"}
                 </div>
-                <p className="text-[10px] text-white/40">Accuracy</p>
+                <p className="text-[10px] text-white/40">{t("trainer.accuracy")}</p>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold tabular-nums text-orange-400">
                   🔥 {stats.bestStreak}
                 </div>
-                <p className="text-[10px] text-white/40">Best Streak</p>
+                <p className="text-[10px] text-white/40">{t("trainer.bestStreak")}</p>
               </div>
             </div>
           </div>
@@ -274,7 +277,7 @@ export default function TrainerPage() {
           className="w-full rounded-xl bg-poker-green px-6 py-4 text-lg font-bold text-black hover:bg-emerald-400 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
         >
           <Play className="w-5 h-5" />
-          Start Training
+          {t("trainer.startTraining")}
         </button>
       </div>
     );
@@ -308,7 +311,7 @@ export default function TrainerPage() {
                   onChange={(e) => setPositionFilter(e.target.value as Position | "all")}
                   className="appearance-none rounded-lg border border-white/[0.08] bg-white/[0.04] pl-3 pr-8 py-1.5 text-xs text-white/70 focus:border-poker-green/50 focus:outline-none"
                 >
-                  <option value="all">All Pos</option>
+                  <option value="all">{t("trainer.allPos")}</option>
                   {ALL_POSITIONS.map((pos) => (
                     <option key={pos} value={pos}>{positionLabels[pos]}</option>
                   ))}
@@ -321,7 +324,7 @@ export default function TrainerPage() {
               className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-white/50 hover:text-white/80 hover:bg-white/[0.08] transition-colors"
             >
               <StopCircle className="w-3.5 h-3.5" />
-              End Session
+              {t("trainer.endSession")}
             </button>
           </div>
 
@@ -377,7 +380,7 @@ export default function TrainerPage() {
                     </span>
                   )}
                   <span className="text-sm font-bold tabular-nums">
-                    Streak: {session.streak}
+                    {t("trainer.streak")} {session.streak}
                   </span>
                 </div>
                 <span className={cn(

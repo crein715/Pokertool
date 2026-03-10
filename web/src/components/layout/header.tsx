@@ -1,21 +1,24 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
-const pageTitles: Record<string, string> = {
-  "/": "Dashboard",
-  "/learn/hand-rankings": "Hand Rankings",
-  "/learn/positions": "Table Positions",
-  "/learn/concepts": "Key Concepts",
-  "/learn/glossary": "Glossary",
-  "/ranges": "Preflop Ranges",
-  "/trainer": "Trainer",
-  "/calculator": "Calculator",
+const pageTitleKeys: Record<string, string> = {
+  "/": "header.dashboard",
+  "/learn/hand-rankings": "header.handRankings",
+  "/learn/positions": "header.positions",
+  "/learn/concepts": "header.concepts",
+  "/learn/glossary": "header.glossary",
+  "/ranges": "header.ranges",
+  "/trainer": "header.trainer",
+  "/calculator": "header.calculator",
 };
 
 export function Header() {
   const pathname = usePathname();
-  const title = pageTitles[pathname] || "PokerTrainer";
+  const { t } = useT();
+  const key = pageTitleKeys[pathname];
+  const title = key ? t(key) : "PokerTrainer";
 
   return (
     <header className="flex h-14 items-center border-b border-white/[0.06] px-6 lg:px-8">

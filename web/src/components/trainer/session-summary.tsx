@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { positionLabels, type Action } from "@/lib/ranges";
 import { formatAction } from "@/lib/trainer";
 import { getWeakestPosition } from "@/lib/trainer-stats";
+import { useLocale, useT } from "@/lib/i18n";
 import { Trophy, Clock, Target, AlertTriangle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -33,6 +34,8 @@ export function SessionSummary({
   byAction,
   onRestart,
 }: SessionSummaryProps) {
+  const { locale } = useLocale();
+  const { t } = useT();
   const accuracy = hands > 0 ? Math.round((correct / hands) * 100) : 0;
   const weakest = getWeakestPosition(byPosition);
 
@@ -54,8 +57,8 @@ export function SessionSummary({
             accuracy >= 80 ? "text-poker-green" : accuracy >= 60 ? "text-yellow-400" : "text-red-400"
           )} />
         </div>
-        <h2 className="text-2xl font-bold">Session Complete</h2>
-        <p className="text-white/40">Here&apos;s how you did</p>
+        <h2 className="text-2xl font-bold">{t("summary.title")}</h2>
+        <p className="text-white/40">{t("summary.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -66,21 +69,21 @@ export function SessionSummary({
           )}>
             {accuracy}%
           </div>
-          <p className="text-xs text-white/40 mt-1">Accuracy</p>
+          <p className="text-xs text-white/40 mt-1">{t("summary.accuracy")}</p>
           <p className="text-[10px] text-white/30">{correct}/{hands}</p>
         </div>
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
           <div className="text-3xl font-bold tabular-nums text-orange-400">
             🔥 {bestStreak}
           </div>
-          <p className="text-xs text-white/40 mt-1">Best Streak</p>
+          <p className="text-xs text-white/40 mt-1">{t("summary.bestStreak")}</p>
         </div>
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
           <div className="text-3xl font-bold tabular-nums text-blue-400 flex items-center justify-center gap-1">
             <Clock className="w-5 h-5" />
             {formatDuration(duration)}
           </div>
-          <p className="text-xs text-white/40 mt-1">Time</p>
+          <p className="text-xs text-white/40 mt-1">{t("summary.time")}</p>
         </div>
       </div>
 
@@ -89,18 +92,16 @@ export function SessionSummary({
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-yellow-400">Weakest Spot</p>
+              <p className="font-medium text-yellow-400">{t("summary.weakestSpot")}</p>
               <p className="text-sm text-white/60 mt-1">
-                You struggle most with{" "}
-                <strong className="text-white/80">
-                  {positionLabels[weakest.position as keyof typeof positionLabels] || weakest.position.toUpperCase()}
-                </strong>
-                {" "}decisions ({weakest.accuracy}% accuracy)
+                {t("summary.struggleWith")
+                  .replace("{position}", positionLabels[weakest.position as keyof typeof positionLabels] || weakest.position.toUpperCase())
+                  .replace("{accuracy}", String(weakest.accuracy))}
               </p>
               <p className="text-xs text-white/40 mt-1">
                 {weakest.accuracy < 60
-                  ? "Focus on studying this position's range — review the chart and practice specifically."
-                  : "Getting there! A few more reps and you'll have this position locked in."}
+                  ? t("summary.focusStudy")
+                  : t("summary.gettingThere")}
               </p>
             </div>
           </div>
@@ -111,14 +112,14 @@ export function SessionSummary({
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Target className="w-4 h-4 text-poker-green" />
-            Action Breakdown
+            {t("summary.actionBreakdown")}
           </h3>
           <div className="space-y-2">
             {actionEntries.map((entry) => (
               <div key={entry.action} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-white/60 font-medium">
-                    {formatAction(entry.action as Action)}
+                    {formatAction(entry.action as Action, locale)}
                   </span>
                   <span className="text-white/40 tabular-nums">
                     {entry.pct}% ({entry.correct}/{entry.total})
@@ -145,13 +146,13 @@ export function SessionSummary({
           onClick={onRestart}
           className="flex-1 rounded-xl bg-poker-green px-4 py-3 text-sm font-bold text-black hover:bg-emerald-400 transition-colors"
         >
-          Practice Again
+          {t("summary.practiceAgain")}
         </button>
         <Link
           href="/ranges"
           className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/70 hover:bg-white/[0.08] hover:text-white transition-colors text-center flex items-center justify-center gap-2"
         >
-          Review Ranges
+          {t("summary.reviewRanges")}
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>

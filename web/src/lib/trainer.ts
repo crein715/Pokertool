@@ -9,6 +9,9 @@ import {
   allRanges,
   positionLabels,
 } from "@/lib/ranges";
+import type { Locale } from "@/lib/i18n/types";
+import { ui as enUi } from "@/lib/i18n/en";
+import { ui as ukUi } from "@/lib/i18n/uk";
 
 export type Difficulty = "easy" | "medium" | "hard";
 
@@ -28,20 +31,22 @@ export interface QuizHand {
 const SUITS: Suit[] = ["spades", "hearts", "diamonds", "clubs"];
 const ALL_POSITIONS: Position[] = ["utg", "mp", "co", "btn", "sb", "bb"];
 
-const rankNames: Record<string, string> = {
-  A: "Ace", K: "King", Q: "Queen", J: "Jack", T: "Ten",
-  "9": "Nine", "8": "Eight", "7": "Seven", "6": "Six",
-  "5": "Five", "4": "Four", "3": "Three", "2": "Two",
-};
+function tl(locale: Locale, key: string): string {
+  const dict = locale === "uk" ? ukUi : enUi;
+  return dict[key] ?? key;
+}
 
-const positionNotes: Record<Position, string> = {
-  utg: "Early position requires tight play — only premium hands.",
-  mp: "Middle position allows slightly wider opens.",
-  co: "Cutoff is a strong position — open wider.",
-  btn: "Button is the best seat — play the widest range.",
-  sb: "Small blind plays OOP postflop — be selective.",
-  bb: "Big blind already has money in — defend with a wide range.",
-};
+function getRankName(rank: string, locale: Locale): string {
+  return tl(locale, `trainer.rankName.${rank}`);
+}
+
+function getPosNote(pos: Position, locale: Locale): string {
+  return tl(locale, `trainer.posNote.${pos}`);
+}
+
+export function getPositionFullName(pos: Position, locale: Locale = "en"): string {
+  return tl(locale, `trainer.posFullName.${pos}`);
+}
 
 export const positionFullNames: Record<Position, string> = {
   utg: "Under the Gun",
@@ -80,12 +85,16 @@ function cardsToNotation(c1: Card, c2: Card): string {
     : `${high.rank}${low.rank}o`;
 }
 
-function handDescription(notation: string): string {
-  const r1 = rankNames[notation[0]] || notation[0];
-  const r2 = rankNames[notation[1]] || notation[1];
-  if (notation.length === 2) return `Pocket ${r1}s`;
-  const type = notation[2] === "s" ? "suited" : "offsuit";
-  return `${r1}-${r2} ${type}`;
+function handDescription(notation: string, locale: Locale): string {
+  const r1 = getRankName(notation[0], locale);
+  const r2 = getRankName(notation[1], locale);
+  if (notation.length === 2) {
+    return tl(locale, "trainer.hand.pocket").replace("{rank}", r1);
+  }
+  if (notation[2] === "s") {
+    return tl(locale, "trainer.hand.suited").replace("{r1}", r1).replace("{r2}", r2);
+  }
+  return tl(locale, "trainer.hand.offsuit").replace("{r1}", r1).replace("{r2}", r2);
 }
 
 function buildEasyPool(): { raises: string[]; folds: string[] } {
@@ -139,42 +148,48 @@ function pickScenario(
   return { scenario, raiserPos };
 }
 
-function scenarioText(scenario: Scenario, raiserPos?: string): string {
-  if (scenario === "rfi") return "No one has raised. What do you do?";
-  if (scenario === "vs_raise")
-    return `${raiserPos || "Earlier position"} raised to 2.5BB. What do you do?`;
-  return "You raised and got 3-bet. What do you do?";
+function scenarioText(scenario: Scenario, locale: Locale, raiserPos?: string): string {
+  if (scenario === "rfi") return tl(locale, "trainer.scenario.rfi");
+  if (scenario === "vs_raise") {
+    const raiser = raiserPos || tl(locale, "trainer.scenario.vs_raise.default");
+    return tl(locale, "trainer.scenario.vs_raise").replace("{raiser}", raiser);
+  }
+  return tl(locale, "trainer.scenario.vs_3bet");
 }
 
 function buildExplanation(
   hand: string,
   position: Position,
   action: Action,
-  scenario: Scenario
+  scenario: Scenario,
+  locale: Locale
 ): string {
   const pos = positionLabels[position];
-  const note = positionNotes[position];
+  const note = getPosNote(position, locale);
   switch (action) {
     case "raise":
-      return `${hand} is in your ${pos} opening range. ${note}`;
+      return tl(locale, "trainer.explain.raise").replace("{hand}", hand).replace("{pos}", pos).replace("{note}", note);
     case "call":
-      return scenario === "vs_raise"
-        ? `${hand} is playable but not strong enough to 3-bet from ${pos}. Call to see a flop.`
-        : `${hand} is playable but not strong enough to 4-bet from ${pos}. Call to see a flop.`;
+      if (scenario === "vs_raise") {
+        return tl(locale, "trainer.explain.call.vs_raise").replace("{hand}", hand).replace("{pos}", pos);
+      }
+      return tl(locale, "trainer.explain.call.vs_3bet").replace("{hand}", hand).replace("{pos}", pos);
     case "fold":
-      return scenario === "rfi"
-        ? `${hand} is too weak to open from ${pos}. Save chips for better spots. ${note}`
-        : `${hand} is too weak to continue from ${pos} against this raise. Fold and wait for a better spot.`;
+      if (scenario === "rfi") {
+        return tl(locale, "trainer.explain.fold.rfi").replace("{hand}", hand).replace("{pos}", pos).replace("{note}", note);
+      }
+      return tl(locale, "trainer.explain.fold.faced").replace("{hand}", hand).replace("{pos}", pos);
     case "3bet":
-      return `${hand} is strong enough to 3-bet from ${pos} against this raise. ${note}`;
+      return tl(locale, "trainer.explain.3bet").replace("{hand}", hand).replace("{pos}", pos).replace("{note}", note);
     case "4bet":
-      return `${hand} is strong enough to 4-bet from ${pos}. Premium holding — re-raise for value.`;
+      return tl(locale, "trainer.explain.4bet").replace("{hand}", hand).replace("{pos}", pos);
   }
 }
 
 export function generateQuizHand(
   difficulty: Difficulty,
-  positionFilter?: Position
+  positionFilter?: Position,
+  locale: Locale = "en"
 ): QuizHand {
   const position =
     positionFilter || ALL_POSITIONS[Math.floor(Math.random() * ALL_POSITIONS.length)];
@@ -208,13 +223,13 @@ export function generateQuizHand(
     card1,
     card2,
     handNotation: notation,
-    handDescription: handDescription(notation),
+    handDescription: handDescription(notation, locale),
     position,
     scenario,
-    scenarioText: scenarioText(scenario, raiserPos),
+    scenarioText: scenarioText(scenario, locale, raiserPos),
     raiserPosition: raiserPos,
     correctAction,
-    explanation: buildExplanation(notation, position, correctAction, scenario),
+    explanation: buildExplanation(notation, position, correctAction, scenario, locale),
   };
 }
 
@@ -229,12 +244,8 @@ export function getAvailableActions(scenario: Scenario): Action[] {
   }
 }
 
-export function formatAction(action: Action): string {
-  const map: Record<Action, string> = {
-    raise: "RAISE", call: "CALL", fold: "FOLD",
-    "3bet": "3-BET", "4bet": "4-BET",
-  };
-  return map[action];
+export function formatAction(action: Action, locale: Locale = "en"): string {
+  return tl(locale, `trainer.action.${action}`);
 }
 
 export { ALL_POSITIONS };

@@ -4,8 +4,10 @@ import { cn } from "@/lib/utils";
 import type { Card } from "@/lib/poker-data";
 import { suitSymbols, suitColors } from "@/lib/poker-data";
 import type { QuizHand } from "@/lib/trainer";
-import { positionLabels, scenarioLabels, type Position } from "@/lib/ranges";
-import { positionFullNames, ALL_POSITIONS } from "@/lib/trainer";
+import { getPositionFullName } from "@/lib/trainer";
+import { positionLabels, type Position } from "@/lib/ranges";
+import { useLocale, useT } from "@/lib/i18n";
+import { ALL_POSITIONS } from "@/lib/trainer";
 
 interface QuizHandDisplayProps {
   hand: QuizHand;
@@ -40,7 +42,7 @@ function LargeCard({ card, delay }: { card: Card; delay: number }) {
   );
 }
 
-function PokerTableMini({ position }: { position: Position }) {
+function PokerTableMini({ position, tableLabel }: { position: Position; tableLabel: string }) {
   const seats: { pos: Position; x: number; y: number }[] = [
     { pos: "utg", x: 55, y: 108 },
     { pos: "mp", x: 18, y: 65 },
@@ -70,7 +72,7 @@ function PokerTableMini({ position }: { position: Position }) {
         fontSize="10"
         fontWeight="600"
       >
-        POKER
+        {tableLabel}
       </text>
       {seats.map((seat) => {
         const isActive = seat.pos === position;
@@ -115,6 +117,9 @@ function PokerTableMini({ position }: { position: Position }) {
 }
 
 export function QuizHandDisplay({ hand, animKey }: QuizHandDisplayProps) {
+  const { locale } = useLocale();
+  const { t } = useT();
+
   const suitDisplay = (card: Card) => {
     const sym = suitSymbols[card.suit];
     const isRed = card.suit === "hearts" || card.suit === "diamonds";
@@ -127,7 +132,7 @@ export function QuizHandDisplay({ hand, animKey }: QuizHandDisplayProps) {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <PokerTableMini position={hand.position} />
+      <PokerTableMini position={hand.position} tableLabel={t("trainer.poker")} />
 
       <div className="text-center space-y-1">
         <div className="inline-flex items-center gap-2">
@@ -135,11 +140,11 @@ export function QuizHandDisplay({ hand, animKey }: QuizHandDisplayProps) {
             {positionLabels[hand.position]}
           </span>
           <span className="text-white/40 text-sm">
-            {positionFullNames[hand.position]}
+            {getPositionFullName(hand.position, locale)}
           </span>
         </div>
         <p className="text-white/70 text-sm">{hand.scenarioText}</p>
-        <p className="text-white/30 text-xs">Blinds: 50/100</p>
+        <p className="text-white/30 text-xs">{t("trainer.blinds")}</p>
       </div>
 
       <div key={animKey} className="flex items-center gap-3 my-2">

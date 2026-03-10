@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { scenarioLabels, type Scenario } from "@/lib/ranges";
+import { type Scenario } from "@/lib/ranges";
+import { useT } from "@/lib/i18n";
 
 interface ScenarioSelectorProps {
   value: Scenario;
@@ -10,8 +11,15 @@ interface ScenarioSelectorProps {
 }
 
 const scenarios: Scenario[] = ["rfi", "vs_raise", "vs_3bet"];
+const scenarioKeys: Record<Scenario, string> = {
+  rfi: "ranges.scenarioLabels.rfi",
+  vs_raise: "ranges.scenarioLabels.vs_raise",
+  vs_3bet: "ranges.scenarioLabels.vs_3bet",
+};
 
 export function ScenarioSelector({ value, onChange, className }: ScenarioSelectorProps) {
+  const { t } = useT();
+
   return (
     <div className={cn("flex gap-1 rounded-lg bg-white/[0.04] p-1", className)}>
       {scenarios.map((s) => (
@@ -25,7 +33,7 @@ export function ScenarioSelector({ value, onChange, className }: ScenarioSelecto
               : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"
           )}
         >
-          {scenarioLabels[s]}
+          {t(scenarioKeys[s])}
         </button>
       ))}
     </div>
