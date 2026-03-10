@@ -1,5 +1,0 @@
--dontwarn okhttp3.**
--dontwarn okio.**
--keepattributes Signature
--keepattributes *Annotation*
--keep class com.pokertool.model.** { *; }
